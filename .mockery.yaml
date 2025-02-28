@@ -1,0 +1,16 @@
+quiet: False
+resolve-type-alias: False
+issue-845-fix: True
+with-expecter: true
+dir: "{{.InterfaceDir}}/mocks"
+outpkg: "mocks"
+mockname: "{{.InterfaceName}}"
+filename: "{{.MockName}}.go"
+packages:
+    github.com/dtroode/urlshorter/cmd/shortener:
+        # place your package-specific config here
+        config:
+        interfaces:
+            # select the interfaces you want mocked
+            Service:
+                config:

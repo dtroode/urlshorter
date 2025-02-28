@@ -4,19 +4,22 @@ import (
 	"context"
 	"io"
 	"net/http"
-
-	"github.com/dtroode/urlshorter/internal/app"
 )
 
+type Service interface {
+	CreateShortURL(ctx context.Context, originalURL string) (*string, error)
+	GetOriginalURL(ctx context.Context, shortUrl string) (*string, error)
+}
+
 type BaseHandler struct {
-	service *app.Service
+	service Service
 }
 
 type CreateShortURLHandler struct {
 	*BaseHandler
 }
 
-func NewCreateShorURLHandler(service *app.Service) *CreateShortURLHandler {
+func NewCreateShorURLHandler(service Service) *CreateShortURLHandler {
 	return &CreateShortURLHandler{
 		&BaseHandler{
 			service: service,
@@ -52,7 +55,7 @@ type GetShortURLHandler struct {
 	*BaseHandler
 }
 
-func NewGetShortURLHandler(service *app.Service) *GetShortURLHandler {
+func NewGetShortURLHandler(service Service) *GetShortURLHandler {
 	return &GetShortURLHandler{
 		&BaseHandler{
 			service: service,
