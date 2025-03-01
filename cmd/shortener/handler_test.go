@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/dtroode/urlshorter/cmd/shortener/mocks"
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -22,8 +23,6 @@ func (m *failReader) Read(p []byte) (n int, err error) {
 }
 
 func TestCreateShortURLHandler_ServeHTTP(t *testing.T) {
-	ctx := context.Background()
-
 	url := "http://yandex.ru/"
 	responseURL := "http://localhost:8080/d8398Sj3"
 
@@ -66,12 +65,14 @@ func TestCreateShortURLHandler_ServeHTTP(t *testing.T) {
 			r := httptest.NewRequest(http.MethodPost, "/", tt.body)
 			w := httptest.NewRecorder()
 
+			// define service mock behaviour
 			service := mocks.NewService(t)
-			service.On("CreateShortURL", ctx, url).Maybe().Return(tt.serviceResponse, tt.serviceError)
+			service.On("CreateShortURL", r.Context(), url).Maybe().Return(tt.serviceResponse, tt.serviceError)
 
+			// create handler struct and pass mock
 			h := NewCreateShorURLHandler(service)
 
-			h.ServeHTTP(w, r)
+			h.Handle()(w, r)
 
 			res := w.Result()
 			defer res.Body.Close()
@@ -90,8 +91,6 @@ func TestCreateShortURLHandler_ServeHTTP(t *testing.T) {
 }
 
 func TestGetShortURLHandler_ServeHTTP(t *testing.T) {
-	ctx := context.Background()
-
 	responseURL := "http://yandex.ru/"
 
 	tests := map[string]struct {
@@ -123,16 +122,27 @@ func TestGetShortURLHandler_ServeHTTP(t *testing.T) {
 
 	for tn, tt := range tests {
 		t.Run(tn, func(t *testing.T) {
-			r := httptest.NewRequest(http.MethodGet, "/", nil)
-			r.SetPathValue("id", tt.id)
+			r := httptest.NewRequest(http.MethodGet, "/"+tt.id, nil)
+
+			// add chi context to basic context and
+			// url param to chi context for handler
+			// to be able to read id url param
+			// otherwise handler fails with empty id and bad request
+			chiContext := chi.NewRouteContext()
+			chiContext.URLParams.Add("id", tt.id)
+			ctx := context.WithValue(r.Context(), chi.RouteCtxKey, chiContext)
+			r = r.WithContext(ctx)
+
 			w := httptest.NewRecorder()
 
+			// define service mock behaviour
 			service := mocks.NewService(t)
 			service.On("GetOriginalURL", ctx, tt.id).Maybe().Return(tt.serviceResponse, tt.serviceError)
 
+			// create handler struct and pass mock
 			h := NewGetShortURLHandler(service)
 
-			h.ServeHTTP(w, r)
+			h.Handle()(w, r)
 
 			res := w.Result()
 
