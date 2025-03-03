@@ -46,8 +46,8 @@ func (s *Service) CreateShortURL(ctx context.Context, originalURL string) (*stri
 	return &fullPath, nil
 }
 
-func (s *Service) GetOriginalURL(ctx context.Context, shortUrl string) (*string, error) {
-	val, ok := s.urlmap[shortUrl]
+func (s *Service) GetOriginalURL(ctx context.Context, shortURL string) (*string, error) {
+	val, ok := s.urlmap[shortURL]
 
 	if !ok {
 		return nil, ErrNotFound

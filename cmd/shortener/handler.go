@@ -10,7 +10,7 @@ import (
 
 type Service interface {
 	CreateShortURL(ctx context.Context, originalURL string) (*string, error)
-	GetOriginalURL(ctx context.Context, shortUrl string) (*string, error)
+	GetOriginalURL(ctx context.Context, shortURL string) (*string, error)
 }
 
 type BaseHandler struct {

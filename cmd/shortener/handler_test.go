@@ -145,6 +145,7 @@ func TestGetShortURLHandler_ServeHTTP(t *testing.T) {
 			h.Handle()(w, r)
 
 			res := w.Result()
+			defer res.Body.Close()
 
 			assert.Equal(t, tt.wantStatusCode, res.StatusCode)
 
