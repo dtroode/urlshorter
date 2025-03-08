@@ -1,4 +1,4 @@
-package main
+package handler
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dtroode/urlshorter/cmd/shortener/mocks"
+	"github.com/dtroode/urlshorter/internal/handler/mocks"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -65,14 +65,12 @@ func TestCreateShortURLHandler_ServeHTTP(t *testing.T) {
 			r := httptest.NewRequest(http.MethodPost, "/", tt.body)
 			w := httptest.NewRecorder()
 
-			// define service mock behaviour
 			service := mocks.NewService(t)
 			service.On("CreateShortURL", r.Context(), url).Maybe().Return(tt.serviceResponse, tt.serviceError)
 
-			// create handler struct and pass mock
-			h := NewCreateShorURLHandler(service)
+			h := NewHandler(service)
 
-			h.Handle()(w, r)
+			h.CreateShortURL(w, r)
 
 			res := w.Result()
 			defer res.Body.Close()
@@ -135,14 +133,12 @@ func TestGetShortURLHandler_ServeHTTP(t *testing.T) {
 
 			w := httptest.NewRecorder()
 
-			// define service mock behaviour
 			service := mocks.NewService(t)
 			service.On("GetOriginalURL", ctx, tt.id).Maybe().Return(tt.serviceResponse, tt.serviceError)
 
-			// create handler struct and pass mock
-			h := NewGetShortURLHandler(service)
+			h := NewHandler(service)
 
-			h.Handle()(w, r)
+			h.GetShortURL(w, r)
 
 			res := w.Result()
 			defer res.Body.Close()

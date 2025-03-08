@@ -7,10 +7,17 @@ outpkg: "mocks"
 mockname: "{{.InterfaceName}}"
 filename: "{{.MockName}}.go"
 packages:
-    github.com/dtroode/urlshorter/cmd/shortener:
+    github.com/dtroode/urlshorter/internal/app/handler:
         # place your package-specific config here
         config:
         interfaces:
             # select the interfaces you want mocked
             Service:
+                config:
+    github.com/dtroode/urlshorter/internal/app/service:
+        # place your package-specific config here
+        config:
+        interfaces:
+            # select the interfaces you want mocked
+            Storage:
                 config:

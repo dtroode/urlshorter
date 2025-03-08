@@ -1,26 +1,36 @@
 package main
 
 import (
+	"log"
 	"net/http"
 
-	"github.com/dtroode/urlshorter/cmd/shortener/config"
-	"github.com/dtroode/urlshorter/internal/app"
+	"github.com/dtroode/urlshorter/config"
+	"github.com/dtroode/urlshorter/internal/handler"
+	"github.com/dtroode/urlshorter/internal/service"
+	"github.com/dtroode/urlshorter/internal/storage"
 	"github.com/go-chi/chi/v5"
 )
 
 func main() {
-	config := config.ParseFlags()
+	config, err := config.ParseFlags()
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	serivce := app.NewService(config.BaseURL, config.ShortURLLength)
+	urlStorage := storage.NewURL()
+
+	urlService := service.NewURL(config.BaseURL, config.ShortURLLength, urlStorage)
+
+	h := handler.NewHandler(urlService)
 
 	r := chi.NewRouter()
 	r.Route("/", func(r chi.Router) {
-		r.Post("/", NewCreateShorURLHandler(serivce).Handle())
-		r.Get("/{id}", NewGetShortURLHandler(serivce).Handle())
+		r.Post("/", h.CreateShortURL)
+		r.Get("/{id}", h.GetShortURL)
 	})
 
-	err := http.ListenAndServe(config.RunAddr, r)
+	err = http.ListenAndServe(config.RunAddr, r)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 }

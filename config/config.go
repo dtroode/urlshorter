@@ -2,8 +2,6 @@ package config
 
 import (
 	"flag"
-	"log"
-	"os"
 
 	"github.com/caarlos0/env/v6"
 )
@@ -14,7 +12,7 @@ type Config struct {
 	ShortURLLength int    `env:"SHORT_URL_LENGTH"`
 }
 
-func ParseFlags() *Config {
+func ParseFlags() (*Config, error) {
 	config := new(Config)
 
 	flag.StringVar(&config.RunAddr, "a", ":8080", "address for app to run in format `host:port` or `:port`")
@@ -24,9 +22,8 @@ func ParseFlags() *Config {
 
 	err := env.Parse(config)
 	if err != nil {
-		log.Fatal(err)
-		os.Exit(1)
+		return nil, err
 	}
 
-	return config
+	return config, nil
 }

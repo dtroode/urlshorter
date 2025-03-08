@@ -1,4 +1,4 @@
-package app
+package service
 
 import (
 	"context"
@@ -6,44 +6,40 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	internalerror "github.com/dtroode/urlshorter/internal/error"
+	"github.com/dtroode/urlshorter/internal/service/mocks"
 )
 
-func TestCreateShortURL(t *testing.T) {
+func TestURL_CreateShortURL(t *testing.T) {
 	tests := map[string]struct {
 		originalURL          string
 		baseURL              string
 		shortURLLength       int
-		urlmap               map[string]string
+		storageError         error
 		expectedUrlmapLength int
 		expectedLength       int
 		expectedError        error
 	}{
+		"storage error": {
+			storageError:  internalerror.ErrInternal,
+			expectedError: internalerror.ErrInternal,
+		},
 		// ascii control character used here as base URL
 		// this causes url.JoinPath to fail
 		"failed to join path": {
 			originalURL:    "yandex.ru",
 			baseURL:        string(rune(0x7f)),
 			shortURLLength: 10,
-			urlmap:         make(map[string]string),
-			expectedError:  ErrInternal,
-		},
-		"url already exists": {
-			originalURL:    "yandex.ru",
-			baseURL:        "http://localhost/",
-			shortURLLength: 10,
-			urlmap: map[string]string{
-				"C69F32242B": "yandex.ru",
-			},
-			expectedUrlmapLength: 2,
-			expectedLength:       27,
+			expectedError:  internalerror.ErrInternal,
 		},
 		"base url without last slash": {
 			originalURL:          "yandex.ru",
 			baseURL:              "http://localhost",
 			shortURLLength:       10,
 			expectedLength:       27,
-			urlmap:               make(map[string]string),
 			expectedUrlmapLength: 1,
 		},
 		"base url with last slash": {
@@ -51,73 +47,79 @@ func TestCreateShortURL(t *testing.T) {
 			baseURL:              "http://localhost/",
 			shortURLLength:       10,
 			expectedLength:       27,
-			urlmap:               make(map[string]string),
 			expectedUrlmapLength: 1,
 		},
 	}
 
 	for tn, tt := range tests {
 		t.Run(tn, func(t *testing.T) {
-			service := Service{
+			ctx := context.Background()
+
+			urlStorage := mocks.NewStorage(t)
+			urlStorage.On("SetURL", mock.Anything, mock.Anything, mock.Anything).Once().Return(tt.storageError)
+			service := URL{
 				baseURL:        tt.baseURL,
 				shortURLLength: tt.shortURLLength,
-				urlmap:         tt.urlmap,
+				storage:        urlStorage,
 			}
 
-			shortURL, err := service.CreateShortURL(context.Background(), tt.originalURL)
+			shortURL, err := service.CreateShortURL(ctx, tt.originalURL)
 
 			if tt.expectedError != nil {
 				assert.ErrorIs(t, tt.expectedError, err)
 			} else {
 				require.NoError(t, err)
 
-				assert.Len(t, *shortURL, tt.expectedLength)
-				assert.True(t, strings.HasPrefix(*shortURL, tt.baseURL))
-
 				urlParts := strings.Split(*shortURL, "/")
 				shortID := urlParts[len(urlParts)-1]
-				assert.Equal(t, tt.originalURL, service.urlmap[shortID])
+				urlStorage.AssertCalled(t, "SetURL", ctx, shortID, tt.originalURL)
+
+				assert.Len(t, *shortURL, tt.expectedLength)
+				assert.True(t, strings.HasPrefix(*shortURL, tt.baseURL))
 			}
 
 		})
 	}
 }
 
-func TestGetOriginalURL(t *testing.T) {
+func TestURL_GetOriginalURL(t *testing.T) {
 	originalURL := "yandex.ru"
 	shortKey := "C69F32242B"
 
 	tests := map[string]struct {
-		urlmap        map[string]string
-		expectedURL   *string
-		expectedError error
+		storageResponse  *string
+		storageError     error
+		expectedResponse *string
+		expectedError    error
 	}{
-		"link not found": {
-			urlmap:        make(map[string]string),
-			expectedError: ErrNotFound,
+		"storage error": {
+			storageError:  internalerror.ErrNotFound,
+			expectedError: internalerror.ErrNotFound,
 		},
 		"success": {
-			urlmap: map[string]string{
-				shortKey: "yandex.ru",
-			},
-			expectedURL: &originalURL,
+			expectedResponse: &originalURL,
+			storageResponse:  &originalURL,
 		},
 	}
 
 	for tn, tt := range tests {
 		t.Run(tn, func(t *testing.T) {
-			service := Service{
-				urlmap:         tt.urlmap,
+			ctx := context.Background()
+
+			urlStorage := mocks.NewStorage(t)
+			urlStorage.On("GetURL", ctx, shortKey).Once().Return(tt.storageResponse, tt.storageError)
+			service := URL{
 				shortURLLength: 10,
+				storage:        urlStorage,
 			}
 
-			originalURL, err := service.GetOriginalURL(context.Background(), shortKey)
+			resp, err := service.GetOriginalURL(ctx, shortKey)
 
 			if tt.expectedError != nil {
 				assert.ErrorIs(t, tt.expectedError, err)
 			} else {
 				require.NoError(t, err)
-				assert.Equal(t, tt.expectedURL, originalURL)
+				assert.Equal(t, tt.expectedResponse, resp)
 			}
 		})
 	}

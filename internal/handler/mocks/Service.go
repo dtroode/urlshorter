@@ -80,9 +80,9 @@ func (_c *Service_CreateShortURL_Call) RunAndReturn(run func(context.Context, st
 	return _c
 }
 
-// GetOriginalURL provides a mock function with given fields: ctx, shortUrl
-func (_m *Service) GetOriginalURL(ctx context.Context, shortUrl string) (*string, error) {
-	ret := _m.Called(ctx, shortUrl)
+// GetOriginalURL provides a mock function with given fields: ctx, id
+func (_m *Service) GetOriginalURL(ctx context.Context, id string) (*string, error) {
+	ret := _m.Called(ctx, id)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetOriginalURL")
@@ -91,10 +91,10 @@ func (_m *Service) GetOriginalURL(ctx context.Context, shortUrl string) (*string
 	var r0 *string
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context, string) (*string, error)); ok {
-		return rf(ctx, shortUrl)
+		return rf(ctx, id)
 	}
 	if rf, ok := ret.Get(0).(func(context.Context, string) *string); ok {
-		r0 = rf(ctx, shortUrl)
+		r0 = rf(ctx, id)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*string)
@@ -102,7 +102,7 @@ func (_m *Service) GetOriginalURL(ctx context.Context, shortUrl string) (*string
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, shortUrl)
+		r1 = rf(ctx, id)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -117,12 +117,12 @@ type Service_GetOriginalURL_Call struct {
 
 // GetOriginalURL is a helper method to define mock.On call
 //   - ctx context.Context
-//   - shortUrl string
-func (_e *Service_Expecter) GetOriginalURL(ctx interface{}, shortUrl interface{}) *Service_GetOriginalURL_Call {
-	return &Service_GetOriginalURL_Call{Call: _e.mock.On("GetOriginalURL", ctx, shortUrl)}
+//   - id string
+func (_e *Service_Expecter) GetOriginalURL(ctx interface{}, id interface{}) *Service_GetOriginalURL_Call {
+	return &Service_GetOriginalURL_Call{Call: _e.mock.On("GetOriginalURL", ctx, id)}
 }
 
-func (_c *Service_GetOriginalURL_Call) Run(run func(ctx context.Context, shortUrl string)) *Service_GetOriginalURL_Call {
+func (_c *Service_GetOriginalURL_Call) Run(run func(ctx context.Context, id string)) *Service_GetOriginalURL_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(string))
 	})
