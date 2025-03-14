@@ -10,6 +10,7 @@ type Config struct {
 	RunAddr        string `env:"SERVER_ADDRESS"`
 	BaseURL        string `env:"BASE_URL"`
 	ShortURLLength int    `env:"SHORT_URL_LENGTH"`
+	LogLevel       string `env:"LOG_LEVEL"`
 }
 
 func ParseFlags() (*Config, error) {
@@ -17,7 +18,8 @@ func ParseFlags() (*Config, error) {
 
 	flag.StringVar(&config.RunAddr, "a", ":8080", "address for app to run in format `host:port` or `:port`")
 	flag.StringVar(&config.BaseURL, "b", "http://localhost:8080", "base url which goes before short url id")
-	flag.IntVar(&config.ShortURLLength, "l", 8, "short url id length")
+	flag.IntVar(&config.ShortURLLength, "u", 8, "short url id length")
+	flag.StringVar(&config.LogLevel, "l", "INFO", "log level")
 	flag.Parse()
 
 	err := env.Parse(config)

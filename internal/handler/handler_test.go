@@ -22,7 +22,7 @@ func (m *failReader) Read(p []byte) (n int, err error) {
 	return 0, errors.New("failed to read")
 }
 
-func TestCreateShortURLHandler_ServeHTTP(t *testing.T) {
+func TestHandler_CreateShortURL(t *testing.T) {
 	url := "http://yandex.ru/"
 	responseURL := "http://localhost:8080/d8398Sj3"
 
@@ -88,7 +88,7 @@ func TestCreateShortURLHandler_ServeHTTP(t *testing.T) {
 	}
 }
 
-func TestGetShortURLHandler_ServeHTTP(t *testing.T) {
+func TestHandler_GetShortURL(t *testing.T) {
 	responseURL := "http://yandex.ru/"
 
 	tests := map[string]struct {
