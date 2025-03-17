@@ -2,10 +2,14 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+
+	"github.com/dtroode/urlshorter/internal/request"
+	"github.com/dtroode/urlshorter/internal/response"
 )
 
 type Service interface {
@@ -67,4 +71,44 @@ func (h *Handler) GetShortURL(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("location", *originalURL)
 	w.WriteHeader(http.StatusTemporaryRedirect)
+}
+
+type HandlerJSON struct {
+	service Service
+}
+
+func NewHandlerJSON(service Service) *HandlerJSON {
+	return &HandlerJSON{
+		service: service,
+	}
+}
+
+func (h *HandlerJSON) CreateShortURL(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	request := request.CreateShortURL{}
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+
+		return
+	}
+
+	shortURL, err := h.service.CreateShortURL(ctx, request.URL)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
+
+	w.Header().Set("content-type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+	response := response.CreateShortURL{
+		URL: *shortURL,
+	}
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
 }

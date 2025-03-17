@@ -5,12 +5,10 @@ import (
 	"net/http"
 
 	"github.com/dtroode/urlshorter/config"
-	"github.com/dtroode/urlshorter/internal/handler"
 	"github.com/dtroode/urlshorter/internal/logger"
-	"github.com/dtroode/urlshorter/internal/middleware"
+	"github.com/dtroode/urlshorter/internal/router"
 	"github.com/dtroode/urlshorter/internal/service"
 	"github.com/dtroode/urlshorter/internal/storage"
-	"github.com/go-chi/chi/v5"
 )
 
 func main() {
@@ -26,17 +24,14 @@ func main() {
 
 	urlService := service.NewURL(config.BaseURL, config.ShortURLLength, urlStorage)
 
-	h := handler.NewHandler(urlService)
+	r := router.NewRouter()
 
-	r := chi.NewRouter()
-	r.Route("/", func(r chi.Router) {
-		r.Post("/", middleware.RequestLog(h.CreateShortURL))
-		r.Get("/{id}", middleware.RequestLog(h.GetShortURL))
-	})
+	r.RegisterRoutes(urlService)
+	r.RegisterAPIRoutes(urlService)
 
+	logger.Log.Infow("server started", "address", config.RunAddr)
 	err = http.ListenAndServe(config.RunAddr, r)
 	if err != nil {
 		logger.Log.Fatal(err)
 	}
-	logger.Log.Infow("server started", "address", config.RunAddr)
 }

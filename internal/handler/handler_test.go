@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -147,6 +148,71 @@ func TestHandler_GetShortURL(t *testing.T) {
 
 			if !tt.wantError {
 				assert.Equal(t, tt.wantResponse, res.Header.Get("location"))
+			}
+		})
+	}
+}
+
+func TestHandlerJSON_CreateShortURL(t *testing.T) {
+	url := "http://yandex.ru/"
+	responseURL := "http://localhost:8080/d8398Sj3"
+
+	tests := map[string]struct {
+		body            string
+		serviceResponse *string
+		serviceError    error
+		wantError       bool
+		wantStatusCode  int
+		wantContentType string
+		wantResponse    string
+	}{
+		"failed to decode body": {
+			body:           "wrong body",
+			wantError:      true,
+			wantStatusCode: http.StatusBadRequest,
+		},
+		"service error": {
+			body:           fmt.Sprintf(`{"url": "%s"}`, url),
+			serviceError:   errors.New("service error"),
+			wantError:      true,
+			wantStatusCode: http.StatusInternalServerError,
+		},
+		// "failed to encode body": {
+		// 	body:            fmt.Sprintf(`{"url": "%s"}`, url),
+		// 	serviceResponse: &responseURL,
+		// },
+		"success": {
+			body:            fmt.Sprintf(`{"url": "%s"}`, url),
+			serviceResponse: &responseURL,
+			wantStatusCode:  http.StatusCreated,
+			wantContentType: "application/json",
+			wantResponse:    fmt.Sprintf(`{"result": "%s"}`, responseURL),
+		},
+	}
+
+	for tn, tt := range tests {
+		t.Run(tn, func(t *testing.T) {
+			r := httptest.NewRequest(http.MethodPost, "/api/shorten", strings.NewReader(tt.body))
+			w := httptest.NewRecorder()
+
+			service := mocks.NewService(t)
+			service.On("CreateShortURL", r.Context(), url).Maybe().Return(tt.serviceResponse, tt.serviceError)
+
+			h := NewHandlerJSON(service)
+
+			h.CreateShortURL(w, r)
+
+			res := w.Result()
+			defer res.Body.Close()
+
+			assert.Equal(t, tt.wantStatusCode, res.StatusCode)
+
+			if !tt.wantError {
+				resBody, err := io.ReadAll(res.Body)
+				require.NoError(t, err)
+
+				assert.JSONEq(t, tt.wantResponse, string(resBody))
+				assert.Equal(t, tt.wantContentType, res.Header.Get("content-type"))
 			}
 		})
 	}
