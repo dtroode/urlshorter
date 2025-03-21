@@ -29,9 +29,7 @@ func NewHandler(service Service) *Handler {
 
 func (h *Handler) CreateShortURL(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-
 	body, err := io.ReadAll(r.Body)
-	r.Body.Close()
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 

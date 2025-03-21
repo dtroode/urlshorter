@@ -29,7 +29,7 @@ func (w *loggingResponseWriter) Write(b []byte) (int, error) {
 	return size, err
 }
 
-func RequestLog(h http.HandlerFunc) http.HandlerFunc {
+func RequestLog(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
@@ -42,7 +42,7 @@ func RequestLog(h http.HandlerFunc) http.HandlerFunc {
 			responseData:   responseData,
 		}
 
-		h(&lw, r)
+		h.ServeHTTP(&lw, r)
 
 		duration := time.Since(start)
 
