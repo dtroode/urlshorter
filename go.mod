@@ -7,12 +7,16 @@ require (
 	go.uber.org/zap v1.27.0
 )
 
-require go.uber.org/multierr v1.11.0 // indirect
+require (
+	go.uber.org/multierr v1.11.0 // indirect
+	golang.org/x/net v0.33.0 // indirect
+)
 
 require (
 	github.com/caarlos0/env/v6 v6.10.1
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/go-chi/chi/v5 v5.2.1
+	github.com/go-resty/resty/v2 v2.16.5
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect

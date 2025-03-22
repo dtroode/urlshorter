@@ -2,6 +2,7 @@ package router
 
 import (
 	"github.com/dtroode/urlshorter/internal/handler"
+	internalLogger "github.com/dtroode/urlshorter/internal/logger"
 	"github.com/dtroode/urlshorter/internal/middleware"
 	"github.com/dtroode/urlshorter/internal/service"
 	"github.com/go-chi/chi/v5"
@@ -18,15 +19,17 @@ func NewRouter() *Router {
 	}
 }
 
-func (r *Router) RegisterRoutes(s *service.URL) {
-	logger := middleware.RequestLog
+func (r *Router) RegisterRoutes(s *service.URL, logger *internalLogger.Log) {
+	myLogFormatter := internalLogger.NewLogFormatter(*logger)
+	requestLogger := chiMiddleware.RequestLogger(myLogFormatter)
+
 	degzipper := middleware.DeGzip
 	compressor := chiMiddleware.Compress(5)
 
 	h := handler.NewHandler(s)
 
 	r.Route("/", func(r chi.Router) {
-		r.Use(logger)
+		r.Use(requestLogger)
 		r.Use(degzipper)
 
 		r.With(compressor).Post("/", h.CreateShortURL)
@@ -34,15 +37,17 @@ func (r *Router) RegisterRoutes(s *service.URL) {
 	})
 }
 
-func (r *Router) RegisterAPIRoutes(s *service.URL) {
-	logger := middleware.RequestLog
+func (r *Router) RegisterAPIRoutes(s *service.URL, logger *internalLogger.Log) {
+	myLogFormatter := internalLogger.NewLogFormatter(*logger)
+	requestLogger := chiMiddleware.RequestLogger(myLogFormatter)
+
 	degzipper := middleware.DeGzip
 	compressor := chiMiddleware.Compress(5)
 
 	h := handler.NewHandlerJSON(s)
 
 	r.Route("/api", func(r chi.Router) {
-		r.Use(logger)
+		r.Use(requestLogger)
 		r.Use(degzipper)
 		r.Use(compressor)
 
