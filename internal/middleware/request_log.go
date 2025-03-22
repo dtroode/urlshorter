@@ -29,7 +29,17 @@ func (w *loggingResponseWriter) Write(b []byte) (int, error) {
 	return size, err
 }
 
-func RequestLog(h http.Handler) http.Handler {
+type RequestLog struct {
+	l *logger.Log
+}
+
+func NewRequestLog(l *logger.Log) *RequestLog {
+	return &RequestLog{
+		l: l,
+	}
+}
+
+func (m *RequestLog) Handle(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
@@ -46,7 +56,7 @@ func RequestLog(h http.Handler) http.Handler {
 
 		duration := time.Since(start)
 
-		logger.Log.Infoln(
+		m.l.Infoln(
 			"uri", r.RequestURI,
 			"method", r.Method,
 			"status", lw.responseData.status,

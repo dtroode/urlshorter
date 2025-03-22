@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/dtroode/urlshorter/config"
-	"github.com/dtroode/urlshorter/internal/logger"
+	internalLogger "github.com/dtroode/urlshorter/internal/logger"
 	"github.com/dtroode/urlshorter/internal/router"
 	"github.com/dtroode/urlshorter/internal/service"
 	"github.com/dtroode/urlshorter/internal/storage"
@@ -17,8 +17,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	logger.Initialize(config.LogLevel)
-	defer logger.Log.Sync()
+	logger, err := internalLogger.NewLog(config.LogLevel)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer logger.Sync()
 
 	urlStorage := storage.NewURL()
 
@@ -26,12 +29,12 @@ func main() {
 
 	r := router.NewRouter()
 
-	r.RegisterRoutes(urlService)
-	r.RegisterAPIRoutes(urlService)
+	r.RegisterRoutes(urlService, logger)
+	r.RegisterAPIRoutes(urlService, logger)
 
-	logger.Log.Infow("server started", "address", config.RunAddr)
+	logger.Infow("server started", "address", config.RunAddr)
 	err = http.ListenAndServe(config.RunAddr, r)
 	if err != nil {
-		logger.Log.Fatal(err)
+		logger.Fatal(err)
 	}
 }
