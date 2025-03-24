@@ -17,7 +17,7 @@ func (m URLMap) MarshalJSON() ([]byte, error) {
 		OriginalURL string `json:"original_url"`
 	}
 
-	urlSlice := make([]jsonStruct, len(m))
+	urlSlice := make([]jsonStruct, 0)
 
 	for k, v := range m {
 		urlSlice = append(urlSlice, jsonStruct{ShortURL: k, OriginalURL: v})
