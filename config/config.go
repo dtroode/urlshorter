@@ -2,6 +2,8 @@ package config
 
 import (
 	"flag"
+	"fmt"
+	"os"
 
 	"github.com/caarlos0/env/v6"
 )
@@ -21,7 +23,7 @@ func Initialize() (*Config, error) {
 	flag.StringVar(&config.BaseURL, "b", "http://localhost:8080", "base url which goes before short url id")
 	flag.IntVar(&config.ShortURLLength, "u", 8, "short url id length")
 	flag.StringVar(&config.LogLevel, "l", "INFO", "log level")
-	flag.StringVar(&config.FileStoragePath, "f", "./tmp/urls", "path to file where to store urls")
+	flag.StringVar(&config.FileStoragePath, "f", fmt.Sprintf(os.TempDir(), "urls"), "path to file where to store urls")
 	flag.Parse()
 
 	err := env.Parse(config)
