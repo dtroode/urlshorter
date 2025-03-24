@@ -1,32 +1,16 @@
 package logger
 
 import (
-	"go.uber.org/zap"
+	"log/slog"
+	"os"
 )
 
-type Log struct {
-	*zap.SugaredLogger
+type Logger struct {
+	*slog.Logger
 }
 
-func NewLog(level string) (*Log, error) {
-	lvl, err := zap.ParseAtomicLevel(level)
-	if err != nil {
-		return nil, err
+func NewLog(level string) *Logger {
+	return &Logger{
+		Logger: slog.New(slog.NewJSONHandler(os.Stdout, nil)),
 	}
-
-	cfg := zap.NewProductionConfig()
-	cfg.Level = lvl
-
-	zl, err := cfg.Build()
-	if err != nil {
-		return nil, err
-	}
-
-	return &Log{
-		SugaredLogger: zl.Sugar(),
-	}, nil
-}
-
-func (l *Log) Print(v ...interface{}) {
-	l.Infoln(v)
 }

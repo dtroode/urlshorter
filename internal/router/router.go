@@ -19,7 +19,7 @@ func NewRouter() *Router {
 	}
 }
 
-func (r *Router) RegisterRoutes(s *service.URL, logger *logger.Log) {
+func (r *Router) RegisterRoutes(s *service.URL, logger *logger.Logger) {
 	loggerMiddleware := middleware.NewRequestLog(logger).Handle
 	degzipper := middleware.DeGzip
 	compressor := chiMiddleware.Compress(5)
@@ -37,7 +37,7 @@ func (r *Router) RegisterRoutes(s *service.URL, logger *logger.Log) {
 	})
 }
 
-func (r *Router) RegisterAPIRoutes(s *service.URL, logger *logger.Log) {
+func (r *Router) RegisterAPIRoutes(s *service.URL, logger *logger.Logger) {
 	loggerMiddleware := middleware.NewRequestLog(logger).Handle
 	degzipper := middleware.DeGzip
 	compressor := chiMiddleware.Compress(5)

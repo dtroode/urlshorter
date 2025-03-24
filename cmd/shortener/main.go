@@ -23,11 +23,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	logger, err := internalLogger.NewLog(config.LogLevel)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer logger.Sync()
+	logger := internalLogger.NewLog(config.LogLevel)
 
 	urlStorage, err := storage.NewURL(config.FileStoragePath)
 	if err != nil {
@@ -43,13 +39,14 @@ func main() {
 	r.RegisterAPIRoutes(urlService, logger)
 
 	go func() {
-		logger.Infow("server started", "address", config.RunAddr)
+		logger.Info("server started", "address", config.RunAddr)
 		err = http.ListenAndServe(config.RunAddr, r)
 		if err != nil {
-			logger.Fatal(err)
+			logger.Error("error running server", "error", err)
+			os.Exit(1)
 		}
 	}()
 
 	<-sigChan
-	logger.Infow("received interruption signal, exitting")
+	logger.Info("received interruption signal, exitting")
 }
