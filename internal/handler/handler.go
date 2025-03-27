@@ -71,17 +71,7 @@ func (h *Handler) GetShortURL(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
-type HandlerJSON struct {
-	service Service
-}
-
-func NewHandlerJSON(service Service) *HandlerJSON {
-	return &HandlerJSON{
-		service: service,
-	}
-}
-
-func (h *HandlerJSON) CreateShortURL(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) CreateShortURLJSON(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	request := request.CreateShortURL{}

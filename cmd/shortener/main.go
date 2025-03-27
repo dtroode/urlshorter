@@ -36,7 +36,6 @@ func main() {
 	r := router.NewRouter()
 
 	r.RegisterRoutes(urlService, logger)
-	r.RegisterAPIRoutes(urlService, logger)
 
 	go func() {
 		logger.Info("server started", "address", config.RunAddr)

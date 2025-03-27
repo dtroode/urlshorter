@@ -153,7 +153,7 @@ func TestHandler_GetShortURL(t *testing.T) {
 	}
 }
 
-func TestHandlerJSON_CreateShortURL(t *testing.T) {
+func TestHandler_CreateShortURLJSON(t *testing.T) {
 	url := "http://yandex.ru/"
 	responseURL := "http://localhost:8080/d8398Sj3"
 
@@ -198,9 +198,9 @@ func TestHandlerJSON_CreateShortURL(t *testing.T) {
 			service := mocks.NewService(t)
 			service.On("CreateShortURL", r.Context(), url).Maybe().Return(tt.serviceResponse, tt.serviceError)
 
-			h := NewHandlerJSON(service)
+			h := NewHandler(service)
 
-			h.CreateShortURL(w, r)
+			h.CreateShortURLJSON(w, r)
 
 			res := w.Result()
 			defer res.Body.Close()

@@ -35,20 +35,12 @@ func (r *Router) RegisterRoutes(s *service.URL, logger *logger.Logger) {
 		r.With(compressor).Post("/", h.CreateShortURL)
 		r.Get("/{id}", h.GetShortURL)
 	})
-}
-
-func (r *Router) RegisterAPIRoutes(s *service.URL, logger *logger.Logger) {
-	loggerMiddleware := middleware.NewRequestLog(logger).Handle
-	degzipper := middleware.DeGzip
-	compressor := chiMiddleware.Compress(5)
-
-	h := handler.NewHandlerJSON(s)
 
 	r.Route("/api", func(r chi.Router) {
 		r.Use(loggerMiddleware)
 		r.Use(degzipper)
 		r.Use(compressor)
 
-		r.Post("/shorten", h.CreateShortURL)
+		r.Post("/shorten", h.CreateShortURLJSON)
 	})
 }
