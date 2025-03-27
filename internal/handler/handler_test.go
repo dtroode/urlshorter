@@ -5,12 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/dtroode/urlshorter/internal/handler/mocks"
+	"github.com/dtroode/urlshorter/internal/logger"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,6 +26,10 @@ func (m *failReader) Read(p []byte) (n int, err error) {
 }
 
 func TestHandler_CreateShortURL(t *testing.T) {
+	dummyLogger := &logger.Logger{
+		Logger: slog.New(slog.NewJSONHandler(io.Discard, nil)),
+	}
+
 	url := "http://yandex.ru/"
 	responseURL := "http://localhost:8080/d8398Sj3"
 
@@ -69,7 +75,7 @@ func TestHandler_CreateShortURL(t *testing.T) {
 			service := mocks.NewService(t)
 			service.On("CreateShortURL", r.Context(), url).Maybe().Return(tt.serviceResponse, tt.serviceError)
 
-			h := NewHandler(service)
+			h := NewHandler(service, dummyLogger)
 
 			h.CreateShortURL(w, r)
 
@@ -90,6 +96,10 @@ func TestHandler_CreateShortURL(t *testing.T) {
 }
 
 func TestHandler_GetShortURL(t *testing.T) {
+	dummyLogger := &logger.Logger{
+		Logger: slog.New(slog.NewJSONHandler(io.Discard, nil)),
+	}
+
 	responseURL := "http://yandex.ru/"
 
 	tests := map[string]struct {
@@ -137,7 +147,7 @@ func TestHandler_GetShortURL(t *testing.T) {
 			service := mocks.NewService(t)
 			service.On("GetOriginalURL", ctx, tt.id).Maybe().Return(tt.serviceResponse, tt.serviceError)
 
-			h := NewHandler(service)
+			h := NewHandler(service, dummyLogger)
 
 			h.GetShortURL(w, r)
 
@@ -154,6 +164,10 @@ func TestHandler_GetShortURL(t *testing.T) {
 }
 
 func TestHandler_CreateShortURLJSON(t *testing.T) {
+	dummyLogger := &logger.Logger{
+		Logger: slog.New(slog.NewJSONHandler(io.Discard, nil)),
+	}
+
 	url := "http://yandex.ru/"
 	responseURL := "http://localhost:8080/d8398Sj3"
 
@@ -198,7 +212,7 @@ func TestHandler_CreateShortURLJSON(t *testing.T) {
 			service := mocks.NewService(t)
 			service.On("CreateShortURL", r.Context(), url).Maybe().Return(tt.serviceResponse, tt.serviceError)
 
-			h := NewHandler(service)
+			h := NewHandler(service, dummyLogger)
 
 			h.CreateShortURLJSON(w, r)
 

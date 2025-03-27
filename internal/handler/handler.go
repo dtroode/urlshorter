@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/dtroode/urlshorter/internal/logger"
 	"github.com/dtroode/urlshorter/internal/request"
 	"github.com/dtroode/urlshorter/internal/response"
 )
@@ -19,11 +20,13 @@ type Service interface {
 
 type Handler struct {
 	service Service
+	logger  *logger.Logger
 }
 
-func NewHandler(service Service) *Handler {
+func NewHandler(s Service, l *logger.Logger) *Handler {
 	return &Handler{
-		service: service,
+		service: s,
+		logger:  l,
 	}
 }
 
@@ -39,6 +42,7 @@ func (h *Handler) CreateShortURL(w http.ResponseWriter, r *http.Request) {
 	url := string(body)
 	shortURL, err := h.service.CreateShortURL(ctx, url)
 	if err != nil {
+		h.logger.Error("service error", "error", err)
 		w.WriteHeader(http.StatusInternalServerError)
 
 		return
@@ -62,6 +66,7 @@ func (h *Handler) GetShortURL(w http.ResponseWriter, r *http.Request) {
 
 	originalURL, err := h.service.GetOriginalURL(ctx, id)
 	if err != nil {
+		h.logger.Error("service error", "error", err)
 		w.WriteHeader(http.StatusInternalServerError)
 
 		return
@@ -83,6 +88,7 @@ func (h *Handler) CreateShortURLJSON(w http.ResponseWriter, r *http.Request) {
 
 	shortURL, err := h.service.CreateShortURL(ctx, request.URL)
 	if err != nil {
+		h.logger.Error("service error", "error", err)
 		w.WriteHeader(http.StatusInternalServerError)
 
 		return

@@ -19,12 +19,12 @@ func NewRouter() *Router {
 	}
 }
 
-func (r *Router) RegisterRoutes(s *service.URL, logger *logger.Logger) {
-	loggerMiddleware := middleware.NewRequestLog(logger).Handle
+func (r *Router) RegisterRoutes(s *service.URL, l *logger.Logger) {
+	loggerMiddleware := middleware.NewRequestLog(l).Handle
 	degzipper := middleware.Decompress
 	compressor := chiMiddleware.Compress(5)
 
-	h := handler.NewHandler(s)
+	h := handler.NewHandler(s, l)
 
 	r.Route("/", func(r chi.Router) {
 		r.Use(loggerMiddleware)
