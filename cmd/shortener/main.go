@@ -25,11 +25,11 @@ func main() {
 
 	logger := internalLogger.NewLog(config.LogLevel)
 
-	urlStorage, err := storage.NewURL(config.FileStoragePath)
+	urlStorage, err := storage.NewInMemory(config.FileStoragePath)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer urlStorage.Flush()
+	defer urlStorage.Close()
 
 	urlService := service.NewURL(config.BaseURL, config.ShortURLLength, urlStorage)
 

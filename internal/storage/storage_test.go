@@ -1,7 +1,10 @@
 package storage
 
 import (
+	"bufio"
+	"bytes"
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,25 +13,31 @@ import (
 	internalerror "github.com/dtroode/urlshorter/internal/error"
 )
 
-func TestURL_GetURL(t *testing.T) {
+func TestInMemory_GetURL(t *testing.T) {
 	originalURL := "yandex.ru"
 
 	tests := map[string]struct {
-		urlmap        map[string]string
+		urlmap        URLMap
 		id            string
 		expectedURL   *string
 		expectedError error
 	}{
 		"url not found": {
-			urlmap: map[string]string{
-				"id1": "yandex.ru",
+			urlmap: URLMap{
+				"id1": &URLData{
+					ShortURL:    "id1",
+					OriginalURL: "yandex.ru",
+				},
 			},
 			id:            "id2",
 			expectedError: internalerror.ErrNotFound,
 		},
 		"url found": {
-			urlmap: map[string]string{
-				"id1": "yandex.ru",
+			urlmap: URLMap{
+				"id1": &URLData{
+					ShortURL:    "id1",
+					OriginalURL: "yandex.ru",
+				},
 			},
 			id:          "id1",
 			expectedURL: &originalURL,
@@ -37,7 +46,7 @@ func TestURL_GetURL(t *testing.T) {
 
 	for tn, tt := range tests {
 		t.Run(tn, func(t *testing.T) {
-			s := URL{
+			s := InMemory{
 				urlmap: tt.urlmap,
 			}
 
@@ -49,28 +58,44 @@ func TestURL_GetURL(t *testing.T) {
 	}
 }
 
+type dummyFile struct {
+	*bufio.Writer
+}
+
+func (f *dummyFile) Close() error {
+	return nil
+}
+
 func TestURL_SetURL(t *testing.T) {
+	buf := bytes.NewBuffer(nil)
+
 	tests := map[string]struct {
-		urlmap *map[string]string
+		urlmap URLMap
 		id     string
 		url    string
 	}{
 		"url already exist": {
-			urlmap: &map[string]string{
-				"id1": "yandex.ru",
+			urlmap: URLMap{
+				"id1": &URLData{
+					ShortURL:    "id1",
+					OriginalURL: "yandex.ru",
+				},
 			},
 			id:  "id2",
 			url: "yandex.ru",
 		},
 		"id already exist": {
-			urlmap: &map[string]string{
-				"id1": "yandex.ru",
+			urlmap: URLMap{
+				"id1": &URLData{
+					ShortURL:    "id1",
+					OriginalURL: "yandex.ru",
+				},
 			},
 			id:  "id1",
 			url: "google.com",
 		},
 		"new url": {
-			urlmap: &map[string]string{},
+			urlmap: URLMap{},
 			id:     "id1",
 			url:    "google.com",
 		},
@@ -78,15 +103,30 @@ func TestURL_SetURL(t *testing.T) {
 
 	for tn, tt := range tests {
 		t.Run(tn, func(t *testing.T) {
-			s := URL{
-				urlmap: *tt.urlmap,
+			s := InMemory{
+				urlmap:  tt.urlmap,
+				file:    &dummyFile{Writer: bufio.NewWriter(buf)},
+				encoder: json.NewEncoder(buf),
+			}
+
+			expectedData := URLData{
+				ShortURL:    tt.id,
+				OriginalURL: tt.url,
 			}
 
 			err := s.SetURL(context.Background(), tt.id, tt.url)
-
 			require.NoError(t, err)
 
-			assert.Equal(t, tt.url, (*tt.urlmap)[tt.id])
+			assert.Equal(t, &expectedData, (tt.urlmap)[tt.id])
+
+			line, err := buf.ReadBytes('\n')
+			require.NoError(t, err)
+
+			writtenData := URLData{}
+			err = json.Unmarshal(line, &writtenData)
+			require.NoError(t, err)
+
+			assert.Equal(t, expectedData, writtenData)
 		})
 	}
 }
