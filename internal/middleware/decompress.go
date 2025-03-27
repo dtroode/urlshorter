@@ -34,7 +34,7 @@ func newGzipReader(r io.ReadCloser) (*gzipReader, error) {
 	}, nil
 }
 
-func DeGzip(h http.Handler) http.Handler {
+func Decompress(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ce := r.Header.Get("Content-Encoding")
 		if strings.Contains(ce, "gzip") {

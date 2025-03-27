@@ -21,7 +21,7 @@ func NewRouter() *Router {
 
 func (r *Router) RegisterRoutes(s *service.URL, logger *logger.Logger) {
 	loggerMiddleware := middleware.NewRequestLog(logger).Handle
-	degzipper := middleware.DeGzip
+	degzipper := middleware.Decompress
 	compressor := chiMiddleware.Compress(5)
 
 	h := handler.NewHandler(s)

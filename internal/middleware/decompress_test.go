@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestDeGzip(t *testing.T) {
+func TestDecompress(t *testing.T) {
 	expectedBody := []byte("test body")
 
 	dummyHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -36,13 +36,13 @@ func TestDeGzip(t *testing.T) {
 
 		w := httptest.NewRecorder()
 
-		DeGzip(dummyHandler).ServeHTTP(w, r)
+		Decompress(dummyHandler).ServeHTTP(w, r)
 	})
 
 	t.Run("plain request", func(t *testing.T) {
 		r := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(expectedBody))
 		w := httptest.NewRecorder()
 
-		DeGzip(dummyHandler).ServeHTTP(w, r)
+		Decompress(dummyHandler).ServeHTTP(w, r)
 	})
 }
