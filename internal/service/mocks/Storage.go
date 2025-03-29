@@ -5,6 +5,7 @@ package mocks
 import (
 	context "context"
 
+	model "github.com/dtroode/urlshorter/internal/model"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -21,9 +22,9 @@ func (_m *Storage) EXPECT() *Storage_Expecter {
 	return &Storage_Expecter{mock: &_m.Mock}
 }
 
-// GetURL provides a mock function with given fields: ctx, id
-func (_m *Storage) GetURL(ctx context.Context, id string) (*string, error) {
-	ret := _m.Called(ctx, id)
+// GetURL provides a mock function with given fields: ctx, shortKey
+func (_m *Storage) GetURL(ctx context.Context, shortKey string) (*string, error) {
+	ret := _m.Called(ctx, shortKey)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetURL")
@@ -32,10 +33,10 @@ func (_m *Storage) GetURL(ctx context.Context, id string) (*string, error) {
 	var r0 *string
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context, string) (*string, error)); ok {
-		return rf(ctx, id)
+		return rf(ctx, shortKey)
 	}
 	if rf, ok := ret.Get(0).(func(context.Context, string) *string); ok {
-		r0 = rf(ctx, id)
+		r0 = rf(ctx, shortKey)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*string)
@@ -43,7 +44,7 @@ func (_m *Storage) GetURL(ctx context.Context, id string) (*string, error) {
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, id)
+		r1 = rf(ctx, shortKey)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -58,12 +59,12 @@ type Storage_GetURL_Call struct {
 
 // GetURL is a helper method to define mock.On call
 //   - ctx context.Context
-//   - id string
-func (_e *Storage_Expecter) GetURL(ctx interface{}, id interface{}) *Storage_GetURL_Call {
-	return &Storage_GetURL_Call{Call: _e.mock.On("GetURL", ctx, id)}
+//   - shortKey string
+func (_e *Storage_Expecter) GetURL(ctx interface{}, shortKey interface{}) *Storage_GetURL_Call {
+	return &Storage_GetURL_Call{Call: _e.mock.On("GetURL", ctx, shortKey)}
 }
 
-func (_c *Storage_GetURL_Call) Run(run func(ctx context.Context, id string)) *Storage_GetURL_Call {
+func (_c *Storage_GetURL_Call) Run(run func(ctx context.Context, shortKey string)) *Storage_GetURL_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(string))
 	})
@@ -80,17 +81,17 @@ func (_c *Storage_GetURL_Call) RunAndReturn(run func(context.Context, string) (*
 	return _c
 }
 
-// SetURL provides a mock function with given fields: ctx, id, url
-func (_m *Storage) SetURL(ctx context.Context, id string, url string) error {
-	ret := _m.Called(ctx, id, url)
+// SetURL provides a mock function with given fields: ctx, url
+func (_m *Storage) SetURL(ctx context.Context, url *model.URL) error {
+	ret := _m.Called(ctx, url)
 
 	if len(ret) == 0 {
 		panic("no return value specified for SetURL")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
-		r0 = rf(ctx, id, url)
+	if rf, ok := ret.Get(0).(func(context.Context, *model.URL) error); ok {
+		r0 = rf(ctx, url)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -105,15 +106,14 @@ type Storage_SetURL_Call struct {
 
 // SetURL is a helper method to define mock.On call
 //   - ctx context.Context
-//   - id string
-//   - url string
-func (_e *Storage_Expecter) SetURL(ctx interface{}, id interface{}, url interface{}) *Storage_SetURL_Call {
-	return &Storage_SetURL_Call{Call: _e.mock.On("SetURL", ctx, id, url)}
+//   - url *model.URL
+func (_e *Storage_Expecter) SetURL(ctx interface{}, url interface{}) *Storage_SetURL_Call {
+	return &Storage_SetURL_Call{Call: _e.mock.On("SetURL", ctx, url)}
 }
 
-func (_c *Storage_SetURL_Call) Run(run func(ctx context.Context, id string, url string)) *Storage_SetURL_Call {
+func (_c *Storage_SetURL_Call) Run(run func(ctx context.Context, url *model.URL)) *Storage_SetURL_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(string))
+		run(args[0].(context.Context), args[1].(*model.URL))
 	})
 	return _c
 }
@@ -123,7 +123,7 @@ func (_c *Storage_SetURL_Call) Return(_a0 error) *Storage_SetURL_Call {
 	return _c
 }
 
-func (_c *Storage_SetURL_Call) RunAndReturn(run func(context.Context, string, string) error) *Storage_SetURL_Call {
+func (_c *Storage_SetURL_Call) RunAndReturn(run func(context.Context, *model.URL) error) *Storage_SetURL_Call {
 	_c.Call.Return(run)
 	return _c
 }

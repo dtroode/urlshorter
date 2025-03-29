@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	internalerror "github.com/dtroode/urlshorter/internal/error"
+	"github.com/dtroode/urlshorter/internal/model"
 	"github.com/dtroode/urlshorter/internal/service/mocks"
 )
 
@@ -17,7 +18,7 @@ func TestURL_CreateShortURL(t *testing.T) {
 	tests := map[string]struct {
 		originalURL          string
 		baseURL              string
-		shortURLLength       int
+		shortKeyLength       int
 		storageError         error
 		expectedUrlmapLength int
 		expectedLength       int
@@ -32,20 +33,20 @@ func TestURL_CreateShortURL(t *testing.T) {
 		"failed to join path": {
 			originalURL:    "yandex.ru",
 			baseURL:        string(rune(0x7f)),
-			shortURLLength: 10,
+			shortKeyLength: 10,
 			expectedError:  internalerror.ErrInternal,
 		},
 		"base url without last slash": {
 			originalURL:          "yandex.ru",
 			baseURL:              "http://localhost",
-			shortURLLength:       10,
+			shortKeyLength:       10,
 			expectedLength:       27,
 			expectedUrlmapLength: 1,
 		},
 		"base url with last slash": {
 			originalURL:          "yandex.ru",
 			baseURL:              "http://localhost/",
-			shortURLLength:       10,
+			shortKeyLength:       10,
 			expectedLength:       27,
 			expectedUrlmapLength: 1,
 		},
@@ -56,10 +57,10 @@ func TestURL_CreateShortURL(t *testing.T) {
 			ctx := context.Background()
 
 			urlStorage := mocks.NewStorage(t)
-			urlStorage.On("SetURL", mock.Anything, mock.Anything, mock.Anything).Once().Return(tt.storageError)
+			urlStorage.On("SetURL", mock.Anything, mock.Anything).Once().Return(tt.storageError)
 			service := URL{
 				baseURL:        tt.baseURL,
-				shortURLLength: tt.shortURLLength,
+				shortKeyLength: tt.shortKeyLength,
 				storage:        urlStorage,
 			}
 
@@ -71,8 +72,8 @@ func TestURL_CreateShortURL(t *testing.T) {
 				require.NoError(t, err)
 
 				urlParts := strings.Split(*shortURL, "/")
-				shortID := urlParts[len(urlParts)-1]
-				urlStorage.AssertCalled(t, "SetURL", ctx, shortID, tt.originalURL)
+				shortKey := urlParts[len(urlParts)-1]
+				urlStorage.AssertCalled(t, "SetURL", ctx, &model.URL{OriginalURL: tt.originalURL, ShortKey: shortKey})
 
 				assert.Len(t, *shortURL, tt.expectedLength)
 				assert.True(t, strings.HasPrefix(*shortURL, tt.baseURL))
@@ -109,7 +110,7 @@ func TestURL_GetOriginalURL(t *testing.T) {
 			urlStorage := mocks.NewStorage(t)
 			urlStorage.On("GetURL", ctx, shortKey).Once().Return(tt.storageResponse, tt.storageError)
 			service := URL{
-				shortURLLength: 10,
+				shortKeyLength: 10,
 				storage:        urlStorage,
 			}
 

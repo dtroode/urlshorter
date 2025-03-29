@@ -3,13 +3,16 @@ package handler
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/dtroode/urlshorter/internal/handler/mocks"
+	"github.com/dtroode/urlshorter/internal/logger"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,7 +25,11 @@ func (m *failReader) Read(p []byte) (n int, err error) {
 	return 0, errors.New("failed to read")
 }
 
-func TestCreateShortURLHandler_ServeHTTP(t *testing.T) {
+func TestHandler_CreateShortURL(t *testing.T) {
+	dummyLogger := &logger.Logger{
+		Logger: slog.New(slog.NewJSONHandler(io.Discard, nil)),
+	}
+
 	url := "http://yandex.ru/"
 	responseURL := "http://localhost:8080/d8398Sj3"
 
@@ -68,7 +75,7 @@ func TestCreateShortURLHandler_ServeHTTP(t *testing.T) {
 			service := mocks.NewService(t)
 			service.On("CreateShortURL", r.Context(), url).Maybe().Return(tt.serviceResponse, tt.serviceError)
 
-			h := NewHandler(service)
+			h := NewHandler(service, dummyLogger)
 
 			h.CreateShortURL(w, r)
 
@@ -88,7 +95,11 @@ func TestCreateShortURLHandler_ServeHTTP(t *testing.T) {
 	}
 }
 
-func TestGetShortURLHandler_ServeHTTP(t *testing.T) {
+func TestHandler_GetShortURL(t *testing.T) {
+	dummyLogger := &logger.Logger{
+		Logger: slog.New(slog.NewJSONHandler(io.Discard, nil)),
+	}
+
 	responseURL := "http://yandex.ru/"
 
 	tests := map[string]struct {
@@ -136,7 +147,7 @@ func TestGetShortURLHandler_ServeHTTP(t *testing.T) {
 			service := mocks.NewService(t)
 			service.On("GetOriginalURL", ctx, tt.id).Maybe().Return(tt.serviceResponse, tt.serviceError)
 
-			h := NewHandler(service)
+			h := NewHandler(service, dummyLogger)
 
 			h.GetShortURL(w, r)
 
@@ -147,6 +158,75 @@ func TestGetShortURLHandler_ServeHTTP(t *testing.T) {
 
 			if !tt.wantError {
 				assert.Equal(t, tt.wantResponse, res.Header.Get("location"))
+			}
+		})
+	}
+}
+
+func TestHandler_CreateShortURLJSON(t *testing.T) {
+	dummyLogger := &logger.Logger{
+		Logger: slog.New(slog.NewJSONHandler(io.Discard, nil)),
+	}
+
+	url := "http://yandex.ru/"
+	responseURL := "http://localhost:8080/d8398Sj3"
+
+	tests := map[string]struct {
+		body            string
+		serviceResponse *string
+		serviceError    error
+		wantError       bool
+		wantStatusCode  int
+		wantContentType string
+		wantResponse    string
+	}{
+		"failed to decode body": {
+			body:           "wrong body",
+			wantError:      true,
+			wantStatusCode: http.StatusBadRequest,
+		},
+		"service error": {
+			body:           fmt.Sprintf(`{"url": "%s"}`, url),
+			serviceError:   errors.New("service error"),
+			wantError:      true,
+			wantStatusCode: http.StatusInternalServerError,
+		},
+		// "failed to encode body": {
+		// 	body:            fmt.Sprintf(`{"url": "%s"}`, url),
+		// 	serviceResponse: &responseURL,
+		// },
+		"success": {
+			body:            fmt.Sprintf(`{"url": "%s"}`, url),
+			serviceResponse: &responseURL,
+			wantStatusCode:  http.StatusCreated,
+			wantContentType: "application/json",
+			wantResponse:    fmt.Sprintf(`{"result": "%s"}`, responseURL),
+		},
+	}
+
+	for tn, tt := range tests {
+		t.Run(tn, func(t *testing.T) {
+			r := httptest.NewRequest(http.MethodPost, "/api/shorten", strings.NewReader(tt.body))
+			w := httptest.NewRecorder()
+
+			service := mocks.NewService(t)
+			service.On("CreateShortURL", r.Context(), url).Maybe().Return(tt.serviceResponse, tt.serviceError)
+
+			h := NewHandler(service, dummyLogger)
+
+			h.CreateShortURLJSON(w, r)
+
+			res := w.Result()
+			defer res.Body.Close()
+
+			assert.Equal(t, tt.wantStatusCode, res.StatusCode)
+
+			if !tt.wantError {
+				resBody, err := io.ReadAll(res.Body)
+				require.NoError(t, err)
+
+				assert.JSONEq(t, tt.wantResponse, string(resBody))
+				assert.Equal(t, tt.wantContentType, res.Header.Get("content-type"))
 			}
 		})
 	}
