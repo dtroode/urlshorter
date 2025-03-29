@@ -11,7 +11,6 @@ import (
 
 	internalerror "github.com/dtroode/urlshorter/internal/error"
 	"github.com/dtroode/urlshorter/internal/model"
-	_ "github.com/dtroode/urlshorter/internal/model"
 	"github.com/dtroode/urlshorter/internal/service/mocks"
 )
 
