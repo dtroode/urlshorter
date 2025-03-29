@@ -9,17 +9,13 @@ import (
 	"os"
 
 	internalerror "github.com/dtroode/urlshorter/internal/error"
+	"github.com/dtroode/urlshorter/internal/model"
 )
 
-type URLData struct {
-	ShortURL    string `json:"short_url"`
-	OriginalURL string `json:"original_url"`
-}
-
-type URLMap map[string]*URLData
+type URLMap map[string]*model.URL
 
 func (m URLMap) UnmarshalJSON(d []byte) error {
-	urlSlice := make([]URLData, 0)
+	urlSlice := make([]model.URL, 0)
 
 	err := json.Unmarshal(d, &urlSlice)
 	if err != nil {
@@ -27,7 +23,7 @@ func (m URLMap) UnmarshalJSON(d []byte) error {
 	}
 
 	for _, v := range urlSlice {
-		m[v.ShortURL] = &v
+		m[v.ShortKey] = &v
 	}
 
 	return nil
@@ -51,11 +47,11 @@ func NewInMemory(filename string) (*InMemory, error) {
 	urlmap := URLMap{}
 
 	for scanner.Scan() {
-		entry := &URLData{}
+		entry := &model.URL{}
 		if err := json.Unmarshal(scanner.Bytes(), entry); err != nil {
 			return nil, fmt.Errorf("failed to unmarshall urls entry: %w", err)
 		}
-		urlmap[entry.ShortURL] = entry
+		urlmap[entry.ShortKey] = entry
 	}
 	if err := scanner.Err(); err != nil {
 		return nil, fmt.Errorf("scanner error: %w", err)
@@ -77,8 +73,8 @@ func (s *InMemory) Close() error {
 	return s.file.Close()
 }
 
-func (s *InMemory) GetURL(_ context.Context, id string) (*string, error) {
-	val, ok := s.urlmap[id]
+func (s *InMemory) GetURL(_ context.Context, shortKey string) (*string, error) {
+	val, ok := s.urlmap[shortKey]
 
 	if !ok {
 		return nil, internalerror.ErrNotFound
@@ -87,20 +83,16 @@ func (s *InMemory) GetURL(_ context.Context, id string) (*string, error) {
 	return &val.OriginalURL, nil
 }
 
-func (s *InMemory) SetURL(ctx context.Context, id, url string) error {
-	urlData := &URLData{
-		ShortURL:    id,
-		OriginalURL: url,
-	}
-	s.urlmap[id] = urlData
+func (s *InMemory) SetURL(ctx context.Context, url *model.URL) error {
+	s.urlmap[url.ShortKey] = url
 
-	if err := s.saveToFile(ctx, urlData); err != nil {
+	if err := s.saveToFile(ctx, url); err != nil {
 		return fmt.Errorf("failed to encode url to file: %w", err)
 	}
 
 	return nil
 }
 
-func (s *InMemory) saveToFile(_ context.Context, urlData *URLData) error {
-	return s.encoder.Encode(urlData)
+func (s *InMemory) saveToFile(_ context.Context, url *model.URL) error {
+	return s.encoder.Encode(url)
 }

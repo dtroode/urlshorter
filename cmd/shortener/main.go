@@ -31,7 +31,7 @@ func main() {
 	}
 	defer urlStorage.Close()
 
-	urlService := service.NewURL(config.BaseURL, config.ShortURLLength, urlStorage)
+	urlService := service.NewURL(config.BaseURL, config.ShortKeyLength, urlStorage)
 
 	r := router.NewRouter()
 

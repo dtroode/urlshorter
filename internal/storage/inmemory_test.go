@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	internalerror "github.com/dtroode/urlshorter/internal/error"
+	"github.com/dtroode/urlshorter/internal/model"
 )
 
 func TestInMemory_GetURL(t *testing.T) {
@@ -24,8 +25,8 @@ func TestInMemory_GetURL(t *testing.T) {
 	}{
 		"url not found": {
 			urlmap: URLMap{
-				"id1": &URLData{
-					ShortURL:    "id1",
+				"id1": &model.URL{
+					ShortKey:    "id1",
 					OriginalURL: "yandex.ru",
 				},
 			},
@@ -34,8 +35,8 @@ func TestInMemory_GetURL(t *testing.T) {
 		},
 		"url found": {
 			urlmap: URLMap{
-				"id1": &URLData{
-					ShortURL:    "id1",
+				"id1": &model.URL{
+					ShortKey:    "id1",
 					OriginalURL: "yandex.ru",
 				},
 			},
@@ -71,33 +72,38 @@ func TestURL_SetURL(t *testing.T) {
 
 	tests := map[string]struct {
 		urlmap URLMap
-		id     string
-		url    string
+		url    *model.URL
 	}{
 		"url already exist": {
 			urlmap: URLMap{
-				"id1": &URLData{
-					ShortURL:    "id1",
+				"id1": &model.URL{
+					ShortKey:    "abcd1",
 					OriginalURL: "yandex.ru",
 				},
 			},
-			id:  "id2",
-			url: "yandex.ru",
+			url: &model.URL{
+				ShortKey:    "abcd2",
+				OriginalURL: "yandex.ru",
+			},
 		},
 		"id already exist": {
 			urlmap: URLMap{
-				"id1": &URLData{
-					ShortURL:    "id1",
+				"id1": &model.URL{
+					ShortKey:    "abcd1",
 					OriginalURL: "yandex.ru",
 				},
 			},
-			id:  "id1",
-			url: "google.com",
+			url: &model.URL{
+				ShortKey:    "abcd2",
+				OriginalURL: "yandex.ru",
+			},
 		},
 		"new url": {
 			urlmap: URLMap{},
-			id:     "id1",
-			url:    "google.com",
+			url: &model.URL{
+				ShortKey:    "abcd2",
+				OriginalURL: "yandex.ru",
+			},
 		},
 	}
 
@@ -109,24 +115,19 @@ func TestURL_SetURL(t *testing.T) {
 				encoder: json.NewEncoder(buf),
 			}
 
-			expectedData := URLData{
-				ShortURL:    tt.id,
-				OriginalURL: tt.url,
-			}
-
-			err := s.SetURL(context.Background(), tt.id, tt.url)
+			err := s.SetURL(context.Background(), tt.url)
 			require.NoError(t, err)
 
-			assert.Equal(t, &expectedData, (tt.urlmap)[tt.id])
+			assert.Equal(t, tt.url, (tt.urlmap)[tt.url.ShortKey])
 
 			line, err := buf.ReadBytes('\n')
 			require.NoError(t, err)
 
-			writtenData := URLData{}
-			err = json.Unmarshal(line, &writtenData)
+			writtenData := &model.URL{}
+			err = json.Unmarshal(line, writtenData)
 			require.NoError(t, err)
 
-			assert.Equal(t, expectedData, writtenData)
+			assert.Equal(t, tt.url, writtenData)
 		})
 	}
 }
