@@ -3,34 +3,49 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/dtroode/urlshorter/config"
-	"github.com/dtroode/urlshorter/internal/handler"
+	internalLogger "github.com/dtroode/urlshorter/internal/logger"
+	"github.com/dtroode/urlshorter/internal/router"
 	"github.com/dtroode/urlshorter/internal/service"
 	"github.com/dtroode/urlshorter/internal/storage"
-	"github.com/go-chi/chi/v5"
 )
 
 func main() {
-	config, err := config.ParseFlags()
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
+
+	config, err := config.Initialize()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	urlStorage := storage.NewURL()
+	logger := internalLogger.NewLog(config.LogLevel)
 
-	urlService := service.NewURL(config.BaseURL, config.ShortURLLength, urlStorage)
-
-	h := handler.NewHandler(urlService)
-
-	r := chi.NewRouter()
-	r.Route("/", func(r chi.Router) {
-		r.Post("/", h.CreateShortURL)
-		r.Get("/{id}", h.GetShortURL)
-	})
-
-	err = http.ListenAndServe(config.RunAddr, r)
+	urlStorage, err := storage.NewInMemory(config.FileStoragePath)
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer urlStorage.Close()
+
+	urlService := service.NewURL(config.BaseURL, config.ShortKeyLength, urlStorage)
+
+	r := router.NewRouter()
+
+	r.RegisterRoutes(urlService, logger)
+
+	go func() {
+		logger.Info("server started", "address", config.RunAddr)
+		err = http.ListenAndServe(config.RunAddr, r)
+		if err != nil {
+			logger.Error("error running server", "error", err)
+			os.Exit(1)
+		}
+	}()
+
+	<-sigChan
+	logger.Info("received interruption signal, exitting")
 }
