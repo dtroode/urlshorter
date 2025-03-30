@@ -10,6 +10,7 @@ import (
 	"github.com/dtroode/urlshorter/internal/model"
 )
 
+//go:generate mockgen -destination=mocks/mock_store.go -package=mocks . Storage
 type Storage interface {
 	GetURL(ctx context.Context, shortKey string) (*string, error)
 	SetURL(ctx context.Context, url *model.URL) error

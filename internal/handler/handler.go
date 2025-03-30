@@ -13,6 +13,7 @@ import (
 	"github.com/dtroode/urlshorter/internal/response"
 )
 
+//go:generate mockgen -destination=mocks/mock_store.go -package=mocks . Service
 type Service interface {
 	CreateShortURL(ctx context.Context, originalURL string) (*string, error)
 	GetOriginalURL(ctx context.Context, id string) (*string, error)

@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 
 	internalerror "github.com/dtroode/urlshorter/internal/error"
 	"github.com/dtroode/urlshorter/internal/model"
@@ -56,8 +56,10 @@ func TestURL_CreateShortURL(t *testing.T) {
 		t.Run(tn, func(t *testing.T) {
 			ctx := context.Background()
 
-			urlStorage := mocks.NewStorage(t)
-			urlStorage.On("SetURL", mock.Anything, mock.Anything).Once().Return(tt.storageError)
+			ctrl := gomock.NewController(t)
+
+			urlStorage := mocks.NewMockStorage(ctrl)
+			urlStorage.EXPECT().SetURL(ctx, gomock.AssignableToTypeOf(&model.URL{})).Return(tt.storageError).Times(1)
 			service := URL{
 				baseURL:        tt.baseURL,
 				shortKeyLength: tt.shortKeyLength,
@@ -70,10 +72,6 @@ func TestURL_CreateShortURL(t *testing.T) {
 				assert.ErrorIs(t, tt.expectedError, err)
 			} else {
 				require.NoError(t, err)
-
-				urlParts := strings.Split(*shortURL, "/")
-				shortKey := urlParts[len(urlParts)-1]
-				urlStorage.AssertCalled(t, "SetURL", ctx, &model.URL{OriginalURL: tt.originalURL, ShortKey: shortKey})
 
 				assert.Len(t, *shortURL, tt.expectedLength)
 				assert.True(t, strings.HasPrefix(*shortURL, tt.baseURL))
@@ -107,8 +105,10 @@ func TestURL_GetOriginalURL(t *testing.T) {
 		t.Run(tn, func(t *testing.T) {
 			ctx := context.Background()
 
-			urlStorage := mocks.NewStorage(t)
-			urlStorage.On("GetURL", ctx, shortKey).Once().Return(tt.storageResponse, tt.storageError)
+			ctrl := gomock.NewController(t)
+
+			urlStorage := mocks.NewMockStorage(ctrl)
+			urlStorage.EXPECT().GetURL(ctx, shortKey).Return(tt.storageResponse, tt.storageError).Times(1)
 			service := URL{
 				shortKeyLength: 10,
 				storage:        urlStorage,

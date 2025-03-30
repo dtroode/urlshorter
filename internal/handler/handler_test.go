@@ -16,6 +16,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 type failReader struct {
@@ -72,8 +73,10 @@ func TestHandler_CreateShortURL(t *testing.T) {
 			r := httptest.NewRequest(http.MethodPost, "/", tt.body)
 			w := httptest.NewRecorder()
 
-			service := mocks.NewService(t)
-			service.On("CreateShortURL", r.Context(), url).Maybe().Return(tt.serviceResponse, tt.serviceError)
+			ctrl := gomock.NewController(t)
+
+			service := mocks.NewMockService(ctrl)
+			service.EXPECT().CreateShortURL(r.Context(), url).Return(tt.serviceResponse, tt.serviceError).MaxTimes(1)
 
 			h := NewHandler(service, dummyLogger)
 
@@ -142,10 +145,12 @@ func TestHandler_GetShortURL(t *testing.T) {
 			ctx := context.WithValue(r.Context(), chi.RouteCtxKey, chiContext)
 			r = r.WithContext(ctx)
 
+			ctrl := gomock.NewController(t)
+
 			w := httptest.NewRecorder()
 
-			service := mocks.NewService(t)
-			service.On("GetOriginalURL", ctx, tt.id).Maybe().Return(tt.serviceResponse, tt.serviceError)
+			service := mocks.NewMockService(ctrl)
+			service.EXPECT().GetOriginalURL(ctx, tt.id).Return(tt.serviceResponse, tt.serviceError).MaxTimes(1)
 
 			h := NewHandler(service, dummyLogger)
 
@@ -209,8 +214,10 @@ func TestHandler_CreateShortURLJSON(t *testing.T) {
 			r := httptest.NewRequest(http.MethodPost, "/api/shorten", strings.NewReader(tt.body))
 			w := httptest.NewRecorder()
 
-			service := mocks.NewService(t)
-			service.On("CreateShortURL", r.Context(), url).Maybe().Return(tt.serviceResponse, tt.serviceError)
+			ctrl := gomock.NewController(t)
+
+			service := mocks.NewMockService(ctrl)
+			service.EXPECT().CreateShortURL(r.Context(), url).Return(tt.serviceResponse, tt.serviceError).MaxTimes(1)
 
 			h := NewHandler(service, dummyLogger)
 
