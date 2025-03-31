@@ -10,7 +10,7 @@ import (
 	"github.com/dtroode/urlshorter/internal/model"
 )
 
-type Storage interface {
+type URLStorage interface {
 	GetURL(ctx context.Context, shortKey string) (*string, error)
 	SetURL(ctx context.Context, url *model.URL) error
 }
@@ -18,13 +18,13 @@ type Storage interface {
 type URL struct {
 	baseURL        string
 	shortKeyLength int
-	storage        Storage
+	storage        URLStorage
 }
 
 func NewURL(
 	baseURL string,
 	shortKeyLength int,
-	storage Storage,
+	storage URLStorage,
 ) *URL {
 	return &URL{
 		baseURL:        baseURL,

@@ -72,10 +72,10 @@ func TestHandler_CreateShortURL(t *testing.T) {
 			r := httptest.NewRequest(http.MethodPost, "/", tt.body)
 			w := httptest.NewRecorder()
 
-			service := mocks.NewService(t)
+			service := mocks.NewURLService(t)
 			service.On("CreateShortURL", r.Context(), url).Maybe().Return(tt.serviceResponse, tt.serviceError)
 
-			h := NewHandler(service, dummyLogger)
+			h := NewURL(service, dummyLogger)
 
 			h.CreateShortURL(w, r)
 
@@ -144,10 +144,10 @@ func TestHandler_GetShortURL(t *testing.T) {
 
 			w := httptest.NewRecorder()
 
-			service := mocks.NewService(t)
+			service := mocks.NewURLService(t)
 			service.On("GetOriginalURL", ctx, tt.id).Maybe().Return(tt.serviceResponse, tt.serviceError)
 
-			h := NewHandler(service, dummyLogger)
+			h := NewURL(service, dummyLogger)
 
 			h.GetShortURL(w, r)
 
@@ -209,10 +209,10 @@ func TestHandler_CreateShortURLJSON(t *testing.T) {
 			r := httptest.NewRequest(http.MethodPost, "/api/shorten", strings.NewReader(tt.body))
 			w := httptest.NewRecorder()
 
-			service := mocks.NewService(t)
+			service := mocks.NewURLService(t)
 			service.On("CreateShortURL", r.Context(), url).Maybe().Return(tt.serviceResponse, tt.serviceError)
 
-			h := NewHandler(service, dummyLogger)
+			h := NewURL(service, dummyLogger)
 
 			h.CreateShortURLJSON(w, r)
 

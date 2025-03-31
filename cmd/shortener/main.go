@@ -8,7 +8,7 @@ import (
 	"syscall"
 
 	"github.com/dtroode/urlshorter/config"
-	internalLogger "github.com/dtroode/urlshorter/internal/logger"
+	"github.com/dtroode/urlshorter/internal/logger"
 	"github.com/dtroode/urlshorter/internal/router"
 	"github.com/dtroode/urlshorter/internal/service"
 	"github.com/dtroode/urlshorter/internal/storage"
@@ -23,19 +23,38 @@ func main() {
 		log.Fatal(err)
 	}
 
-	logger := internalLogger.NewLog(config.LogLevel)
+	logger := logger.NewLog(config.LogLevel)
 
-	urlStorage, err := storage.NewInMemory(config.FileStoragePath)
-	if err != nil {
-		log.Fatal(err)
+	healthService := &service.Health{}
+
+	var urlStorage storage.Storage
+	dsn := config.DatabaseDSN
+	if dsn != "" {
+		databaseStorage, err := storage.NewDatabase(dsn)
+		if err != nil {
+			logger.Error("failed to create database storage", "error", err)
+			os.Exit(1)
+		}
+		urlStorage = databaseStorage
+		logger.Info("using database storage")
+
+		healthService.DB = databaseStorage
+	} else {
+		urlStorage, err = storage.NewInMemory(config.FileStoragePath)
+		if err != nil {
+			logger.Error("failed to create inmemory storage", "error", err)
+			os.Exit(1)
+		}
+
+		logger.Info("using inmemory storage")
 	}
 	defer urlStorage.Close()
 
 	urlService := service.NewURL(config.BaseURL, config.ShortKeyLength, urlStorage)
 
 	r := router.NewRouter()
-
-	r.RegisterRoutes(urlService, logger)
+	r.RegisterAPIRoutes(urlService, logger)
+	r.RegisterHealthRoutes(healthService, logger)
 
 	go func() {
 		logger.Info("server started", "address", config.RunAddr)

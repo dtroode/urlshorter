@@ -13,24 +13,24 @@ import (
 	"github.com/dtroode/urlshorter/internal/response"
 )
 
-type Service interface {
+type URLService interface {
 	CreateShortURL(ctx context.Context, originalURL string) (*string, error)
 	GetOriginalURL(ctx context.Context, id string) (*string, error)
 }
 
-type Handler struct {
-	service Service
+type URL struct {
+	service URLService
 	logger  *logger.Logger
 }
 
-func NewHandler(s Service, l *logger.Logger) *Handler {
-	return &Handler{
+func NewURL(s URLService, l *logger.Logger) *URL {
+	return &URL{
 		service: s,
 		logger:  l,
 	}
 }
 
-func (h *Handler) CreateShortURL(w http.ResponseWriter, r *http.Request) {
+func (h *URL) CreateShortURL(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -54,7 +54,7 @@ func (h *Handler) CreateShortURL(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(*shortURL))
 }
 
-func (h *Handler) GetShortURL(w http.ResponseWriter, r *http.Request) {
+func (h *URL) GetShortURL(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	id := chi.URLParam(r, "id")
@@ -76,7 +76,7 @@ func (h *Handler) GetShortURL(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
-func (h *Handler) CreateShortURLJSON(w http.ResponseWriter, r *http.Request) {
+func (h *URL) CreateShortURLJSON(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	request := request.CreateShortURL{}

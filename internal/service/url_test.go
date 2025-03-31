@@ -56,7 +56,7 @@ func TestURL_CreateShortURL(t *testing.T) {
 		t.Run(tn, func(t *testing.T) {
 			ctx := context.Background()
 
-			urlStorage := mocks.NewStorage(t)
+			urlStorage := mocks.NewURLStorage(t)
 			urlStorage.On("SetURL", mock.Anything, mock.Anything).Once().Return(tt.storageError)
 			service := URL{
 				baseURL:        tt.baseURL,
@@ -107,7 +107,7 @@ func TestURL_GetOriginalURL(t *testing.T) {
 		t.Run(tn, func(t *testing.T) {
 			ctx := context.Background()
 
-			urlStorage := mocks.NewStorage(t)
+			urlStorage := mocks.NewURLStorage(t)
 			urlStorage.On("GetURL", ctx, shortKey).Once().Return(tt.storageResponse, tt.storageError)
 			service := URL{
 				shortKeyLength: 10,
