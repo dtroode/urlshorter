@@ -73,14 +73,14 @@ func (s *InMemory) Close() error {
 	return s.file.Close()
 }
 
-func (s *InMemory) GetURL(_ context.Context, shortKey string) (*string, error) {
+func (s *InMemory) GetURL(_ context.Context, shortKey string) (*model.URL, error) {
 	val, ok := s.urlmap[shortKey]
 
 	if !ok {
 		return nil, internalerror.ErrNotFound
 	}
 
-	return &val.OriginalURL, nil
+	return val, nil
 }
 
 func (s *InMemory) SetURL(ctx context.Context, url *model.URL) error {

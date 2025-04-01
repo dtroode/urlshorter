@@ -20,7 +20,7 @@ func TestInMemory_GetURL(t *testing.T) {
 	tests := map[string]struct {
 		urlmap        URLMap
 		id            string
-		expectedURL   *string
+		expectedURL   string
 		expectedError error
 	}{
 		"url not found": {
@@ -41,7 +41,7 @@ func TestInMemory_GetURL(t *testing.T) {
 				},
 			},
 			id:          "id1",
-			expectedURL: &originalURL,
+			expectedURL: originalURL,
 		},
 	}
 
@@ -54,7 +54,9 @@ func TestInMemory_GetURL(t *testing.T) {
 			resp, err := s.GetURL(context.Background(), tt.id)
 
 			assert.ErrorIs(t, tt.expectedError, err)
-			assert.Equal(t, tt.expectedURL, resp)
+			if tt.expectedError == nil {
+				assert.Equal(t, tt.expectedURL, resp.OriginalURL)
+			}
 		})
 	}
 }

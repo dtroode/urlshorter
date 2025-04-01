@@ -42,7 +42,7 @@ func main() {
 	} else {
 		urlStorage, err = storage.NewInMemory(config.FileStoragePath)
 		if err != nil {
-			logger.Error("failed to create inmemory storage", "error", err)
+			logger.Error("failed to create inmemory storage", "error", err, "file", config.FileStoragePath)
 			os.Exit(1)
 		}
 

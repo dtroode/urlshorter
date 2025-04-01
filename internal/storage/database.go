@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	"github.com/dtroode/urlshorter/internal/model"
+	"github.com/dtroode/urlshorter/internal/postgres"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -13,9 +15,15 @@ type Database struct {
 }
 
 func NewDatabase(dsn string) (*Database, error) {
-	pool, err := pgxpool.New(context.Background(), dsn)
+	ctx := context.Background()
+
+	pool, err := pgxpool.New(ctx, dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open connection pool: %w", err)
+	}
+
+	if err := postgres.Initialize(ctx, pool); err != nil {
+		return nil, fmt.Errorf("failed to initialize database: %w", err)
 	}
 
 	return &Database{
@@ -32,10 +40,32 @@ func (s *Database) Ping(ctx context.Context) error {
 	return s.db.Ping(ctx)
 }
 
-func (s *Database) GetURL(ctx context.Context, shortKey string) (*string, error) {
-	return nil, nil
+func (s *Database) GetURL(ctx context.Context, shortKey string) (*model.URL, error) {
+	query := `SELECT * FROM urls WHERE short_key = @shortKey`
+	args := pgx.NamedArgs{
+		"shortKey": shortKey,
+	}
+	row := s.db.QueryRow(ctx, query, args)
+
+	var url model.URL
+	if err := row.Scan(&url); err != nil {
+		return nil, fmt.Errorf("failed to assign database row to model: %w", err)
+	}
+
+	return &url, nil
 }
 
 func (s *Database) SetURL(ctx context.Context, url *model.URL) error {
+	query := `INSERT INTO urls (id, short_key, original_url) VALUES (@id, @shortKey, @originalURL)`
+	args := pgx.NamedArgs{
+		"id":          url.ID,
+		"shortKey":    url.ShortKey,
+		"originalURL": url.OriginalURL,
+	}
+	_, err := s.db.Exec(ctx, query, args)
+	if err != nil {
+		return fmt.Errorf("failed to set url: %w", err)
+	}
+
 	return nil
 }

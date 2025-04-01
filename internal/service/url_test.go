@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -73,7 +74,8 @@ func TestURL_CreateShortURL(t *testing.T) {
 
 				urlParts := strings.Split(*shortURL, "/")
 				shortKey := urlParts[len(urlParts)-1]
-				urlStorage.AssertCalled(t, "SetURL", ctx, &model.URL{OriginalURL: tt.originalURL, ShortKey: shortKey})
+				urlStorage.AssertCalled(t, "SetURL", ctx,
+					mock.MatchedBy(func(url *model.URL) bool { return url.ShortKey == shortKey && url.OriginalURL == tt.originalURL }))
 
 				assert.Len(t, *shortURL, tt.expectedLength)
 				assert.True(t, strings.HasPrefix(*shortURL, tt.baseURL))
@@ -88,7 +90,7 @@ func TestURL_GetOriginalURL(t *testing.T) {
 	shortKey := "C69F32242B"
 
 	tests := map[string]struct {
-		storageResponse  *string
+		storageResponse  *model.URL
 		storageError     error
 		expectedResponse *string
 		expectedError    error
@@ -99,7 +101,11 @@ func TestURL_GetOriginalURL(t *testing.T) {
 		},
 		"success": {
 			expectedResponse: &originalURL,
-			storageResponse:  &originalURL,
+			storageResponse: &model.URL{
+				ID:          uuid.New(),
+				ShortKey:    shortKey,
+				OriginalURL: originalURL,
+			},
 		},
 	}
 

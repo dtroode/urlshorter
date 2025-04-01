@@ -11,7 +11,7 @@ import (
 )
 
 type URLStorage interface {
-	GetURL(ctx context.Context, shortKey string) (*string, error)
+	GetURL(ctx context.Context, shortKey string) (*model.URL, error)
 	SetURL(ctx context.Context, url *model.URL) error
 }
 
@@ -68,5 +68,5 @@ func (s *URL) GetOriginalURL(ctx context.Context, id string) (*string, error) {
 		return nil, err
 	}
 
-	return url, nil
+	return &url.OriginalURL, nil
 }

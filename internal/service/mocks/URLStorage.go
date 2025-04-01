@@ -23,23 +23,23 @@ func (_m *URLStorage) EXPECT() *URLStorage_Expecter {
 }
 
 // GetURL provides a mock function with given fields: ctx, shortKey
-func (_m *URLStorage) GetURL(ctx context.Context, shortKey string) (*string, error) {
+func (_m *URLStorage) GetURL(ctx context.Context, shortKey string) (*model.URL, error) {
 	ret := _m.Called(ctx, shortKey)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetURL")
 	}
 
-	var r0 *string
+	var r0 *model.URL
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) (*string, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string) (*model.URL, error)); ok {
 		return rf(ctx, shortKey)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) *string); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string) *model.URL); ok {
 		r0 = rf(ctx, shortKey)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*string)
+			r0 = ret.Get(0).(*model.URL)
 		}
 	}
 
@@ -71,12 +71,12 @@ func (_c *URLStorage_GetURL_Call) Run(run func(ctx context.Context, shortKey str
 	return _c
 }
 
-func (_c *URLStorage_GetURL_Call) Return(_a0 *string, _a1 error) *URLStorage_GetURL_Call {
+func (_c *URLStorage_GetURL_Call) Return(_a0 *model.URL, _a1 error) *URLStorage_GetURL_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *URLStorage_GetURL_Call) RunAndReturn(run func(context.Context, string) (*string, error)) *URLStorage_GetURL_Call {
+func (_c *URLStorage_GetURL_Call) RunAndReturn(run func(context.Context, string) (*model.URL, error)) *URLStorage_GetURL_Call {
 	_c.Call.Return(run)
 	return _c
 }
