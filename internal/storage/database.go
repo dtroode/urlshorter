@@ -41,14 +41,14 @@ func (s *Database) Ping(ctx context.Context) error {
 }
 
 func (s *Database) GetURL(ctx context.Context, shortKey string) (*model.URL, error) {
-	query := `SELECT * FROM urls WHERE short_key = @shortKey`
+	query := `SELECT id, short_key, original_url FROM urls WHERE short_key = @shortKey`
 	args := pgx.NamedArgs{
 		"shortKey": shortKey,
 	}
 	row := s.db.QueryRow(ctx, query, args)
 
 	var url model.URL
-	if err := row.Scan(&url); err != nil {
+	if err := row.Scan(&url.ID, &url.ShortKey, &url.OriginalURL); err != nil {
 		return nil, fmt.Errorf("failed to assign database row to model: %w", err)
 	}
 
@@ -64,7 +64,39 @@ func (s *Database) SetURL(ctx context.Context, url *model.URL) error {
 	}
 	_, err := s.db.Exec(ctx, query, args)
 	if err != nil {
-		return fmt.Errorf("failed to set url: %w", err)
+		return fmt.Errorf("failed to save url: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Database) SetURLs(ctx context.Context, urls []*model.URL) error {
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to bgin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	query := `INSERT INTO urls (id, short_key, original_url) VALUES (@id, @shortKey, @originalURL)`
+
+	for _, url := range urls {
+		args := pgx.NamedArgs{
+			"id":          url.ID,
+			"shortKey":    url.ShortKey,
+			"originalURL": url.OriginalURL,
+		}
+		// pgx automatically prepares statement by default
+		_, err := tx.Exec(ctx, query, args)
+		if err != nil {
+			tx.Rollback(ctx)
+
+			return fmt.Errorf("failed to save url: %w", err)
+		}
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to commit transcation: %w", err)
 	}
 
 	return nil

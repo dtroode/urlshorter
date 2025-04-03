@@ -16,6 +16,7 @@ import (
 type URLService interface {
 	CreateShortURL(ctx context.Context, originalURL string) (*string, error)
 	GetOriginalURL(ctx context.Context, id string) (*string, error)
+	CreateShortURLBatch(ctx context.Context, urls []*request.CreateShortURLBatch) ([]*response.CreateShortURLBatch, error)
 }
 
 type URL struct {
@@ -81,6 +82,7 @@ func (h *URL) CreateShortURLJSON(w http.ResponseWriter, r *http.Request) {
 
 	request := request.CreateShortURL{}
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		h.logger.Info("failed to decode request")
 		w.WriteHeader(http.StatusBadRequest)
 
 		return
@@ -101,6 +103,41 @@ func (h *URL) CreateShortURLJSON(w http.ResponseWriter, r *http.Request) {
 		URL: *shortURL,
 	}
 	if err := json.NewEncoder(w).Encode(response); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
+}
+
+func (h *URL) CreateShortURLBatch(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	request := []*request.CreateShortURLBatch{}
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		h.logger.Info("failed to decode request")
+		w.WriteHeader(http.StatusBadRequest)
+
+		return
+	}
+
+	if len(request) == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+
+		return
+	}
+
+	shortURLs, err := h.service.CreateShortURLBatch(ctx, request)
+	if err != nil {
+		h.logger.Error("service error", "error", err)
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
+
+	w.Header().Set("content-type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+	if err := json.NewEncoder(w).Encode(shortURLs); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 
 		return

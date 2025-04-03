@@ -133,3 +133,53 @@ func TestURL_SetURL(t *testing.T) {
 		})
 	}
 }
+
+func TestURL_SetURLs(t *testing.T) {
+	buf := bytes.NewBuffer(nil)
+
+	tests := map[string]struct {
+		urlmap URLMap
+		urls   []*model.URL
+	}{
+		"success": {
+			urlmap: URLMap{
+				"id1": &model.URL{
+					ShortKey:    "abcd1",
+					OriginalURL: "yandex.ru",
+				},
+			},
+			urls: []*model.URL{
+				{
+					ShortKey:    "abcd2",
+					OriginalURL: "yandex.ru",
+				},
+			},
+		},
+	}
+
+	for tn, tt := range tests {
+		t.Run(tn, func(t *testing.T) {
+			s := InMemory{
+				urlmap:  tt.urlmap,
+				file:    &dummyFile{Writer: bufio.NewWriter(buf)},
+				encoder: json.NewEncoder(buf),
+			}
+
+			err := s.SetURLs(context.Background(), tt.urls)
+			require.NoError(t, err)
+
+			for _, u := range tt.urls {
+				assert.Equal(t, u, (tt.urlmap)[u.ShortKey])
+
+				line, err := buf.ReadBytes('\n')
+				require.NoError(t, err)
+
+				writtenData := &model.URL{}
+				err = json.Unmarshal(line, writtenData)
+				require.NoError(t, err)
+
+				assert.Equal(t, u, writtenData)
+			}
+		})
+	}
+}

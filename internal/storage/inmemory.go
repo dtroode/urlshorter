@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync"
 
 	internalerror "github.com/dtroode/urlshorter/internal/error"
 	"github.com/dtroode/urlshorter/internal/model"
@@ -31,6 +32,7 @@ func (m URLMap) UnmarshalJSON(d []byte) error {
 
 type InMemory struct {
 	urlmap  URLMap
+	mu      sync.RWMutex
 	file    io.WriteCloser
 	encoder *json.Encoder
 }
@@ -74,6 +76,9 @@ func (s *InMemory) Close() error {
 }
 
 func (s *InMemory) GetURL(_ context.Context, shortKey string) (*model.URL, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	val, ok := s.urlmap[shortKey]
 
 	if !ok {
@@ -83,7 +88,14 @@ func (s *InMemory) GetURL(_ context.Context, shortKey string) (*model.URL, error
 	return val, nil
 }
 
+func (s *InMemory) saveToFile(_ context.Context, url *model.URL) error {
+	return s.encoder.Encode(url)
+}
+
 func (s *InMemory) SetURL(ctx context.Context, url *model.URL) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	s.urlmap[url.ShortKey] = url
 
 	if err := s.saveToFile(ctx, url); err != nil {
@@ -93,6 +105,17 @@ func (s *InMemory) SetURL(ctx context.Context, url *model.URL) error {
 	return nil
 }
 
-func (s *InMemory) saveToFile(_ context.Context, url *model.URL) error {
-	return s.encoder.Encode(url)
+func (s *InMemory) SetURLs(ctx context.Context, urls []*model.URL) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for _, url := range urls {
+		s.urlmap[url.ShortKey] = url
+
+		if err := s.saveToFile(ctx, url); err != nil {
+			return fmt.Errorf("failed to encode url to file: %w", err)
+		}
+	}
+
+	return nil
 }

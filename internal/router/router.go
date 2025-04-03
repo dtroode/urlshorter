@@ -42,7 +42,11 @@ func (r *Router) RegisterAPIRoutes(s *service.URL, l *logger.Logger) {
 		r.Use(degzipper)
 		r.Use(compressor)
 
-		r.Post("/shorten", h.CreateShortURLJSON)
+		r.Route("/shorten", func(r chi.Router) {
+			r.Post("/", h.CreateShortURLJSON)
+			r.Post("/batch", h.CreateShortURLBatch)
+		})
+
 	})
 }
 

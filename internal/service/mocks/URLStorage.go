@@ -128,6 +128,53 @@ func (_c *URLStorage_SetURL_Call) RunAndReturn(run func(context.Context, *model.
 	return _c
 }
 
+// SetURLs provides a mock function with given fields: ctx, urls
+func (_m *URLStorage) SetURLs(ctx context.Context, urls []*model.URL) error {
+	ret := _m.Called(ctx, urls)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SetURLs")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, []*model.URL) error); ok {
+		r0 = rf(ctx, urls)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// URLStorage_SetURLs_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetURLs'
+type URLStorage_SetURLs_Call struct {
+	*mock.Call
+}
+
+// SetURLs is a helper method to define mock.On call
+//   - ctx context.Context
+//   - urls []*model.URL
+func (_e *URLStorage_Expecter) SetURLs(ctx interface{}, urls interface{}) *URLStorage_SetURLs_Call {
+	return &URLStorage_SetURLs_Call{Call: _e.mock.On("SetURLs", ctx, urls)}
+}
+
+func (_c *URLStorage_SetURLs_Call) Run(run func(ctx context.Context, urls []*model.URL)) *URLStorage_SetURLs_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].([]*model.URL))
+	})
+	return _c
+}
+
+func (_c *URLStorage_SetURLs_Call) Return(_a0 error) *URLStorage_SetURLs_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *URLStorage_SetURLs_Call) RunAndReturn(run func(context.Context, []*model.URL) error) *URLStorage_SetURLs_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // NewURLStorage creates a new instance of URLStorage. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewURLStorage(t interface {
