@@ -1,4 +1,4 @@
-package storage
+package inmemory
 
 import (
 	"bufio"
@@ -9,8 +9,8 @@ import (
 	"os"
 	"sync"
 
-	internalerror "github.com/dtroode/urlshorter/internal/error"
 	"github.com/dtroode/urlshorter/internal/model"
+	"github.com/dtroode/urlshorter/internal/storage"
 )
 
 type URLMap map[string]*model.URL
@@ -30,14 +30,14 @@ func (m URLMap) UnmarshalJSON(d []byte) error {
 	return nil
 }
 
-type InMemory struct {
+type Storage struct {
 	urlmap  URLMap
 	mu      sync.RWMutex
 	file    io.WriteCloser
 	encoder *json.Encoder
 }
 
-func NewInMemory(filename string) (*InMemory, error) {
+func NewStorage(filename string) (*Storage, error) {
 	readFile, err := os.OpenFile(filename, os.O_RDONLY|os.O_CREATE, 0600)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file for read: %w", err)
@@ -64,35 +64,48 @@ func NewInMemory(filename string) (*InMemory, error) {
 		return nil, fmt.Errorf("failed to open file for append: %w", err)
 	}
 
-	return &InMemory{
+	return &Storage{
 		urlmap:  urlmap,
 		file:    writeFile,
 		encoder: json.NewEncoder(writeFile),
 	}, nil
 }
 
-func (s *InMemory) Close() error {
+func (s *Storage) Close() error {
 	return s.file.Close()
 }
 
-func (s *InMemory) GetURL(_ context.Context, shortKey string) (*model.URL, error) {
+func (s *Storage) GetURL(_ context.Context, shortKey string) (*model.URL, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	val, ok := s.urlmap[shortKey]
 
 	if !ok {
-		return nil, internalerror.ErrNotFound
+		return nil, storage.ErrNotFound
 	}
 
 	return val, nil
 }
 
-func (s *InMemory) saveToFile(_ context.Context, url *model.URL) error {
+func (s *Storage) GetURLByOriginal(ctx context.Context, originalURL string) (*model.URL, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for _, url := range s.urlmap {
+		if url.OriginalURL == originalURL {
+			return url, nil
+		}
+	}
+
+	return nil, storage.ErrNotFound
+}
+
+func (s *Storage) saveToFile(_ context.Context, url *model.URL) error {
 	return s.encoder.Encode(url)
 }
 
-func (s *InMemory) SetURL(ctx context.Context, url *model.URL) error {
+func (s *Storage) SetURL(ctx context.Context, url *model.URL) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -105,17 +118,19 @@ func (s *InMemory) SetURL(ctx context.Context, url *model.URL) error {
 	return nil
 }
 
-func (s *InMemory) SetURLs(ctx context.Context, urls []*model.URL) error {
+func (s *Storage) SetURLs(ctx context.Context, urls []*model.URL) (savedURLs []*model.URL, err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	for _, url := range urls {
 		s.urlmap[url.ShortKey] = url
 
-		if err := s.saveToFile(ctx, url); err != nil {
-			return fmt.Errorf("failed to encode url to file: %w", err)
+		if err = s.saveToFile(ctx, url); err != nil {
+			return nil, fmt.Errorf("failed to encode url to file: %w", err)
 		}
+
+		savedURLs = append(savedURLs, url)
 	}
 
-	return nil
+	return
 }

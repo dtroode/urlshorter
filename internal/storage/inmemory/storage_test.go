@@ -1,4 +1,4 @@
-package storage
+package inmemory
 
 import (
 	"bufio"
@@ -10,11 +10,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	internalerror "github.com/dtroode/urlshorter/internal/error"
 	"github.com/dtroode/urlshorter/internal/model"
+	"github.com/dtroode/urlshorter/internal/storage"
 )
 
-func TestInMemory_GetURL(t *testing.T) {
+func TestStorage_GetURL(t *testing.T) {
 	originalURL := "yandex.ru"
 
 	tests := map[string]struct {
@@ -31,7 +31,7 @@ func TestInMemory_GetURL(t *testing.T) {
 				},
 			},
 			id:            "id2",
-			expectedError: internalerror.ErrNotFound,
+			expectedError: storage.ErrNotFound,
 		},
 		"url found": {
 			urlmap: URLMap{
@@ -47,7 +47,7 @@ func TestInMemory_GetURL(t *testing.T) {
 
 	for tn, tt := range tests {
 		t.Run(tn, func(t *testing.T) {
-			s := InMemory{
+			s := Storage{
 				urlmap: tt.urlmap,
 			}
 
@@ -111,7 +111,7 @@ func TestURL_SetURL(t *testing.T) {
 
 	for tn, tt := range tests {
 		t.Run(tn, func(t *testing.T) {
-			s := InMemory{
+			s := Storage{
 				urlmap:  tt.urlmap,
 				file:    &dummyFile{Writer: bufio.NewWriter(buf)},
 				encoder: json.NewEncoder(buf),
@@ -159,14 +159,16 @@ func TestURL_SetURLs(t *testing.T) {
 
 	for tn, tt := range tests {
 		t.Run(tn, func(t *testing.T) {
-			s := InMemory{
+			s := Storage{
 				urlmap:  tt.urlmap,
 				file:    &dummyFile{Writer: bufio.NewWriter(buf)},
 				encoder: json.NewEncoder(buf),
 			}
 
-			err := s.SetURLs(context.Background(), tt.urls)
+			savedURLs, err := s.SetURLs(context.Background(), tt.urls)
 			require.NoError(t, err)
+
+			assert.Equal(t, tt.urls, savedURLs)
 
 			for _, u := range tt.urls {
 				assert.Equal(t, u, (tt.urlmap)[u.ShortKey])

@@ -2,21 +2,23 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"net/url"
 	"strings"
 
-	internalerror "github.com/dtroode/urlshorter/internal/error"
 	"github.com/dtroode/urlshorter/internal/model"
 	"github.com/dtroode/urlshorter/internal/request"
 	"github.com/dtroode/urlshorter/internal/response"
+	"github.com/dtroode/urlshorter/internal/storage"
 )
 
 type URLStorage interface {
 	GetURL(ctx context.Context, shortKey string) (*model.URL, error)
+	GetURLByOriginal(ctx context.Context, originalURL string) (*model.URL, error)
 	SetURL(ctx context.Context, url *model.URL) error
-	SetURLs(ctx context.Context, urls []*model.URL) error
+	SetURLs(ctx context.Context, urls []*model.URL) (savedURLs []*model.URL, err error)
 }
 
 type URL struct {
@@ -61,18 +63,30 @@ func (s *URL) GetOriginalURL(ctx context.Context, id string) (*string, error) {
 
 func (s *URL) CreateShortURL(ctx context.Context, originalURL string) (*string, error) {
 	shortKey := s.generateString()
+	var responseError error
 
 	urlModel := model.NewURL(shortKey, originalURL)
-	if err := s.storage.SetURL(ctx, urlModel); err != nil {
+	err := s.storage.SetURL(ctx, urlModel)
+	if err != nil && !errors.Is(err, storage.ErrConflict) {
 		return nil, fmt.Errorf("failed to set URL: %w", err)
 	}
 
-	shortURL, err := url.JoinPath(s.baseURL, shortKey)
-	if err != nil {
-		return nil, internalerror.ErrInternal
+	if errors.Is(err, storage.ErrConflict) {
+		url, err := s.storage.GetURLByOriginal(ctx, originalURL)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get existing url: %w", err)
+		}
+
+		shortKey = url.ShortKey
+		responseError = ErrConflict
 	}
 
-	return &shortURL, nil
+	shortURL, joinErr := url.JoinPath(s.baseURL, shortKey)
+	if joinErr != nil {
+		return nil, ErrInternal
+	}
+
+	return &shortURL, responseError
 }
 
 func (s *URL) CreateShortURLBatch(ctx context.Context, urls []*request.CreateShortURLBatch) ([]*response.CreateShortURLBatch, error) {
@@ -81,27 +95,48 @@ func (s *URL) CreateShortURLBatch(ctx context.Context, urls []*request.CreateSho
 	urlModels := make([]*model.URL, 0)
 
 	for _, reqURL := range urls {
-		respURL := response.CreateShortURLBatch{
-			CorrelationID: reqURL.CorrelationID,
-		}
-
 		shortKey := s.generateString()
 
 		urlModel := model.NewURL(shortKey, reqURL.OriginalURL)
 		urlModels = append(urlModels, urlModel)
+	}
 
-		shortURL, err := url.JoinPath(s.baseURL, shortKey)
+	savedURLs, err := s.storage.SetURLs(ctx, urlModels)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set urls: %w", err)
+	}
+
+Loop:
+	for _, reqURL := range urls {
+		respURL := response.CreateShortURLBatch{
+			CorrelationID: reqURL.CorrelationID,
+		}
+
+		for _, savedURL := range savedURLs {
+			if reqURL.OriginalURL == savedURL.OriginalURL {
+				shortURL, err := url.JoinPath(s.baseURL, savedURL.ShortKey)
+				if err != nil {
+					return nil, ErrInternal
+				}
+
+				respURL.ShortURL = shortURL
+				resp = append(resp, &respURL)
+				continue Loop
+			}
+		}
+
+		existingURL, err := s.storage.GetURLByOriginal(ctx, reqURL.OriginalURL)
 		if err != nil {
-			return nil, internalerror.ErrInternal
+			return nil, fmt.Errorf("failed to retrieve existing url: %w", err)
+		}
+
+		shortURL, err := url.JoinPath(s.baseURL, existingURL.ShortKey)
+		if err != nil {
+			return nil, ErrInternal
 		}
 
 		respURL.ShortURL = shortURL
-
 		resp = append(resp, &respURL)
-	}
-
-	if err := s.storage.SetURLs(ctx, urlModels); err != nil {
-		return nil, fmt.Errorf("failed to set urls: %w", err)
 	}
 
 	return resp, nil

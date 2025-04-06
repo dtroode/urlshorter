@@ -81,6 +81,65 @@ func (_c *URLStorage_GetURL_Call) RunAndReturn(run func(context.Context, string)
 	return _c
 }
 
+// GetURLByOriginal provides a mock function with given fields: ctx, originalURL
+func (_m *URLStorage) GetURLByOriginal(ctx context.Context, originalURL string) (*model.URL, error) {
+	ret := _m.Called(ctx, originalURL)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetURLByOriginal")
+	}
+
+	var r0 *model.URL
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) (*model.URL, error)); ok {
+		return rf(ctx, originalURL)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) *model.URL); ok {
+		r0 = rf(ctx, originalURL)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.URL)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, originalURL)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// URLStorage_GetURLByOriginal_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetURLByOriginal'
+type URLStorage_GetURLByOriginal_Call struct {
+	*mock.Call
+}
+
+// GetURLByOriginal is a helper method to define mock.On call
+//   - ctx context.Context
+//   - originalURL string
+func (_e *URLStorage_Expecter) GetURLByOriginal(ctx interface{}, originalURL interface{}) *URLStorage_GetURLByOriginal_Call {
+	return &URLStorage_GetURLByOriginal_Call{Call: _e.mock.On("GetURLByOriginal", ctx, originalURL)}
+}
+
+func (_c *URLStorage_GetURLByOriginal_Call) Run(run func(ctx context.Context, originalURL string)) *URLStorage_GetURLByOriginal_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *URLStorage_GetURLByOriginal_Call) Return(_a0 *model.URL, _a1 error) *URLStorage_GetURLByOriginal_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *URLStorage_GetURLByOriginal_Call) RunAndReturn(run func(context.Context, string) (*model.URL, error)) *URLStorage_GetURLByOriginal_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // SetURL provides a mock function with given fields: ctx, url
 func (_m *URLStorage) SetURL(ctx context.Context, url *model.URL) error {
 	ret := _m.Called(ctx, url)
@@ -129,21 +188,33 @@ func (_c *URLStorage_SetURL_Call) RunAndReturn(run func(context.Context, *model.
 }
 
 // SetURLs provides a mock function with given fields: ctx, urls
-func (_m *URLStorage) SetURLs(ctx context.Context, urls []*model.URL) error {
+func (_m *URLStorage) SetURLs(ctx context.Context, urls []*model.URL) ([]*model.URL, error) {
 	ret := _m.Called(ctx, urls)
 
 	if len(ret) == 0 {
 		panic("no return value specified for SetURLs")
 	}
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, []*model.URL) error); ok {
+	var r0 []*model.URL
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, []*model.URL) ([]*model.URL, error)); ok {
+		return rf(ctx, urls)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, []*model.URL) []*model.URL); ok {
 		r0 = rf(ctx, urls)
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.URL)
+		}
 	}
 
-	return r0
+	if rf, ok := ret.Get(1).(func(context.Context, []*model.URL) error); ok {
+		r1 = rf(ctx, urls)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // URLStorage_SetURLs_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetURLs'
@@ -165,12 +236,12 @@ func (_c *URLStorage_SetURLs_Call) Run(run func(ctx context.Context, urls []*mod
 	return _c
 }
 
-func (_c *URLStorage_SetURLs_Call) Return(_a0 error) *URLStorage_SetURLs_Call {
-	_c.Call.Return(_a0)
+func (_c *URLStorage_SetURLs_Call) Return(savedURLs []*model.URL, err error) *URLStorage_SetURLs_Call {
+	_c.Call.Return(savedURLs, err)
 	return _c
 }
 
-func (_c *URLStorage_SetURLs_Call) RunAndReturn(run func(context.Context, []*model.URL) error) *URLStorage_SetURLs_Call {
+func (_c *URLStorage_SetURLs_Call) RunAndReturn(run func(context.Context, []*model.URL) ([]*model.URL, error)) *URLStorage_SetURLs_Call {
 	_c.Call.Return(run)
 	return _c
 }

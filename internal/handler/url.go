@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/dtroode/urlshorter/internal/logger"
 	"github.com/dtroode/urlshorter/internal/request"
 	"github.com/dtroode/urlshorter/internal/response"
+	"github.com/dtroode/urlshorter/internal/service"
 )
 
 type URLService interface {
@@ -29,30 +31,6 @@ func NewURL(s URLService, l *logger.Logger) *URL {
 		service: s,
 		logger:  l,
 	}
-}
-
-func (h *URL) CreateShortURL(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-
-		return
-	}
-
-	url := string(body)
-	shortURL, err := h.service.CreateShortURL(ctx, url)
-	if err != nil {
-		h.logger.Error("service error", "error", err)
-		w.WriteHeader(http.StatusInternalServerError)
-
-		return
-	}
-
-	w.Header().Set("content-type", "text/plain")
-	w.WriteHeader(http.StatusCreated)
-
-	w.Write([]byte(*shortURL))
 }
 
 func (h *URL) GetShortURL(w http.ResponseWriter, r *http.Request) {
@@ -77,6 +55,35 @@ func (h *URL) GetShortURL(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
+func (h *URL) CreateShortURL(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+
+		return
+	}
+
+	url := string(body)
+	shortURL, err := h.service.CreateShortURL(ctx, url)
+	if err != nil && !errors.Is(err, service.ErrConflict) {
+		h.logger.Error("service error", "error", err)
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
+
+	w.Header().Set("content-type", "text/plain")
+
+	if errors.Is(err, service.ErrConflict) {
+		w.WriteHeader(http.StatusConflict)
+	} else {
+		w.WriteHeader(http.StatusCreated)
+	}
+
+	w.Write([]byte(*shortURL))
+}
+
 func (h *URL) CreateShortURLJSON(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -89,7 +96,7 @@ func (h *URL) CreateShortURLJSON(w http.ResponseWriter, r *http.Request) {
 	}
 
 	shortURL, err := h.service.CreateShortURL(ctx, request.URL)
-	if err != nil {
+	if err != nil && !errors.Is(err, service.ErrConflict) {
 		h.logger.Error("service error", "error", err)
 		w.WriteHeader(http.StatusInternalServerError)
 
@@ -97,7 +104,11 @@ func (h *URL) CreateShortURLJSON(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("content-type", "application/json")
-	w.WriteHeader(http.StatusCreated)
+	if errors.Is(err, service.ErrConflict) {
+		w.WriteHeader(http.StatusConflict)
+	} else {
+		w.WriteHeader(http.StatusCreated)
+	}
 
 	response := response.CreateShortURL{
 		URL: *shortURL,

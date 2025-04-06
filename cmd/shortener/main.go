@@ -12,6 +12,8 @@ import (
 	"github.com/dtroode/urlshorter/internal/router"
 	"github.com/dtroode/urlshorter/internal/service"
 	"github.com/dtroode/urlshorter/internal/storage"
+	"github.com/dtroode/urlshorter/internal/storage/inmemory"
+	"github.com/dtroode/urlshorter/internal/storage/postgres"
 )
 
 func main() {
@@ -30,23 +32,23 @@ func main() {
 	var urlStorage storage.Storage
 	dsn := config.DatabaseDSN
 	if dsn != "" {
-		databaseStorage, err := storage.NewDatabase(dsn)
+		pgStorage, err := postgres.NewStorage(dsn)
 		if err != nil {
 			logger.Error("failed to create database storage", "error", err)
 			os.Exit(1)
 		}
-		urlStorage = databaseStorage
-		logger.Info("using database storage")
+		urlStorage = pgStorage
+		logger.Debug("using database storage")
 
-		healthService.DB = databaseStorage
+		healthService.DB = pgStorage
 	} else {
-		urlStorage, err = storage.NewInMemory(config.FileStoragePath)
+		urlStorage, err = inmemory.NewStorage(config.FileStoragePath)
 		if err != nil {
 			logger.Error("failed to create inmemory storage", "error", err, "file", config.FileStoragePath)
 			os.Exit(1)
 		}
 
-		logger.Info("using inmemory storage")
+		logger.Debug("using inmemory storage")
 	}
 	defer urlStorage.Close()
 

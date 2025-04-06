@@ -15,6 +15,7 @@ import (
 	"github.com/dtroode/urlshorter/internal/logger"
 	"github.com/dtroode/urlshorter/internal/request"
 	"github.com/dtroode/urlshorter/internal/response"
+	"github.com/dtroode/urlshorter/internal/service"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -128,6 +129,15 @@ func TestHandler_CreateShortURL(t *testing.T) {
 			wantError:        true,
 			wantStatusCode:   http.StatusInternalServerError,
 		},
+		"service error conflict": {
+			body:             strings.NewReader(url),
+			readBodyResponse: 0,
+			serviceError:     service.ErrConflict,
+			serviceResponse:  &responseURL,
+			wantStatusCode:   http.StatusConflict,
+			wantContentType:  "text/plain",
+			wantResponse:     []byte(responseURL),
+		},
 		"success": {
 			body:             strings.NewReader(url),
 			readBodyResponse: 0,
@@ -192,6 +202,14 @@ func TestHandler_CreateShortURLJSON(t *testing.T) {
 			serviceError:   errors.New("service error"),
 			wantError:      true,
 			wantStatusCode: http.StatusInternalServerError,
+		},
+		"service error conflict": {
+			body:            fmt.Sprintf(`{"url": "%s"}`, url),
+			serviceError:    service.ErrConflict,
+			serviceResponse: &responseURL,
+			wantStatusCode:  http.StatusConflict,
+			wantContentType: "application/json",
+			wantResponse:    fmt.Sprintf(`{"result": "%s"}`, responseURL),
 		},
 		"success": {
 			body:            fmt.Sprintf(`{"url": "%s"}`, url),
