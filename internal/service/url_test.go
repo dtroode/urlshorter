@@ -100,6 +100,7 @@ func TestURL_CreateShortURL(t *testing.T) {
 		"url already exists": {
 			originalURL: "yandex.ru",
 			baseURL:     "http://localhost",
+			setURLError: storage.ErrConflict,
 			exitstingURL: &model.URL{
 				OriginalURL: "yandex.ru",
 				ShortKey:    "ABCDE",
@@ -107,6 +108,7 @@ func TestURL_CreateShortURL(t *testing.T) {
 			shortKeyLength:       5,
 			expectedLength:       22,
 			expectedUrlmapLength: 1,
+			expectedError:        storage.ErrConflict,
 		},
 		"base url without last slash": {
 			originalURL:          "yandex.ru",
@@ -138,11 +140,10 @@ func TestURL_CreateShortURL(t *testing.T) {
 			urlStorage.On("GetURLByOriginal", ctx, tt.originalURL).Maybe().Return(tt.exitstingURL, tt.getURLByOriginalError)
 
 			shortURL, err := service.CreateShortURL(ctx, tt.originalURL)
+			assert.Equal(t, tt.expectedError, err)
 
-			if tt.expectedError != nil {
+			if tt.expectedError == nil {
 				assert.Equal(t, tt.expectedError, err)
-			} else {
-				require.NoError(t, err)
 
 				urlParts := strings.Split(*shortURL, "/")
 				shortKey := urlParts[len(urlParts)-1]

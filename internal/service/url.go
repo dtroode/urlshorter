@@ -43,7 +43,7 @@ func (s *URL) generateString() string {
 	var characters = []rune("ABCDEF0123456789")
 	var sb strings.Builder
 
-	for i := 0; i < s.shortKeyLength; i++ {
+	for range s.shortKeyLength {
 		randomIndex := rand.Intn(len(characters))
 		randomChar := characters[randomIndex]
 		sb.WriteRune(randomChar)

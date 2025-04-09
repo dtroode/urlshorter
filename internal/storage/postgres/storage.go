@@ -72,31 +72,6 @@ func (s *Storage) GetURLByOriginal(ctx context.Context, originalURL string) (*mo
 	return &url, nil
 }
 
-// func (s *Storage) SetURL(ctx context.Context, url *model.URL) (*model.URL, error) {
-// 	query := `
-// 	WITH i AS (
-// 		INSERT INTO urls (id, short_key, original_url) VALUES (@id, @shortKey, @originalURL)
-// 		ON CONFLICT (original_url) DO NOTHING
-// 		RETURNING id, short_key, original_url
-// 	)
-// 		SELECT * FROM i UNION
-// 		SELECT id, short_key, original_url WHERE original_url = @originalURL
-// 	`
-// 	args := pgx.NamedArgs{
-// 		"id":          url.ID,
-// 		"shortKey":    url.ShortKey,
-// 		"originalURL": url.OriginalURL,
-// 	}
-// 	row := s.db.QueryRow(ctx, query, args)
-
-// 	var resultURL model.URL
-// 	if err := row.Scan(&resultURL.ID, &resultURL.ShortKey, &resultURL.OriginalURL); err != nil {
-// 		return nil, fmt.Errorf("failed to assign database row to model: %w", err)
-// 	}
-
-// 	return &resultURL, nil
-// }
-
 func (s *Storage) SetURL(ctx context.Context, url *model.URL) error {
 	query := `
 	INSERT INTO urls (id, short_key, original_url) VALUES (@id, @shortKey, @originalURL)
@@ -121,7 +96,7 @@ func (s *Storage) SetURL(ctx context.Context, url *model.URL) error {
 func (s *Storage) SetURLs(ctx context.Context, urls []*model.URL) (savedURLs []*model.URL, err error) {
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to bgin transaction: %w", err)
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback(ctx)
 
@@ -135,7 +110,6 @@ func (s *Storage) SetURLs(ctx context.Context, urls []*model.URL) (savedURLs []*
 			"shortKey":    url.ShortKey,
 			"originalURL": url.OriginalURL,
 		}
-		// pgx automatically prepares statement by default
 		row := tx.QueryRow(ctx, query, args)
 
 		var savedURL model.URL
