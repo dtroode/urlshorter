@@ -19,13 +19,13 @@ type Storage struct {
 func NewStorage(dsn string) (*Storage, error) {
 	ctx := context.Background()
 
+	if err := database.Migrate(ctx, dsn); err != nil {
+		return nil, fmt.Errorf("failed to initialize database: %w", err)
+	}
+
 	pool, err := pgxpool.New(ctx, dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open connection pool: %w", err)
-	}
-
-	if err := database.Migrate(ctx, dsn); err != nil {
-		return nil, fmt.Errorf("failed to initialize database: %w", err)
 	}
 
 	return &Storage{
