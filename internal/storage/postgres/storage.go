@@ -7,7 +7,8 @@ import (
 
 	"github.com/dtroode/urlshorter/internal/model"
 	"github.com/dtroode/urlshorter/internal/storage"
-	database "github.com/dtroode/urlshorter/postgres"
+
+	// database "github.com/dtroode/urlshorter/postgres"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
