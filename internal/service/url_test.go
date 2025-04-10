@@ -24,22 +24,30 @@ func TestURL_GetOriginalURL(t *testing.T) {
 	shortKey := "C69F32242B"
 
 	tests := map[string]struct {
+		shortKey         string
 		storageResponse  *model.URL
 		storageError     error
 		expectedResponse *string
 		expectedError    error
 	}{
 		"storage error": {
+			shortKey:      shortKey,
 			storageError:  errors.New("storage error"),
 			expectedError: fmt.Errorf("failed to get original URL: %w", errors.New("storage error")),
 		},
 		"success": {
+			shortKey:         shortKey,
 			expectedResponse: &originalURL,
 			storageResponse: &model.URL{
 				ID:          uuid.New(),
 				ShortKey:    shortKey,
 				OriginalURL: originalURL,
 			},
+		},
+		"does not exist": {
+			shortKey:      "does not exist",
+			storageError:  storage.ErrNotFound,
+			expectedError: ErrNotFound,
 		},
 	}
 

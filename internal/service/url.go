@@ -55,6 +55,9 @@ func (s *URL) generateString() string {
 func (s *URL) GetOriginalURL(ctx context.Context, id string) (*string, error) {
 	url, err := s.storage.GetURL(ctx, id)
 	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			return nil, ErrNotFound
+		}
 		return nil, fmt.Errorf("failed to get original URL: %w", err)
 	}
 
