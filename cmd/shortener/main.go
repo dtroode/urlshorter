@@ -27,6 +27,8 @@ func main() {
 
 	logger := logger.NewLog(config.LogLevel)
 
+	logger.Info("config: ", "value", config)
+
 	healthService := &service.Health{}
 
 	var urlStorage storage.Storage
