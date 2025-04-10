@@ -8,7 +8,7 @@ import (
 	"github.com/dtroode/urlshorter/internal/model"
 	"github.com/dtroode/urlshorter/internal/storage"
 
-	// database "github.com/dtroode/urlshorter/postgres"
+	database "github.com/dtroode/urlshorter/postgres"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -20,9 +20,9 @@ type Storage struct {
 func NewStorage(dsn string) (*Storage, error) {
 	ctx := context.Background()
 
-	// if err := database.Migrate(ctx, dsn); err != nil {
-	// 	return nil, fmt.Errorf("failed to initialize database: %w", err)
-	// }
+	if err := database.Migrate(ctx, dsn); err != nil {
+		return nil, fmt.Errorf("failed to initialize database: %w", err)
+	}
 
 	pool, err := pgxpool.New(ctx, dsn)
 	if err != nil {
