@@ -7,8 +7,6 @@ import (
 
 	"github.com/dtroode/urlshorter/internal/model"
 	"github.com/dtroode/urlshorter/internal/storage"
-
-	database "github.com/dtroode/urlshorter/postgres"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -27,6 +25,10 @@ func NewStorage(dsn string) (*Storage, error) {
 	pool, err := pgxpool.New(ctx, dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open connection pool: %w", err)
+	}
+
+	if err := Initialize(ctx, pool); err != nil {
+		return nil, fmt.Errorf("failed to initialize database: %w", err)
 	}
 
 	return &Storage{
@@ -49,27 +51,11 @@ func (s *Storage) GetURL(ctx context.Context, shortKey string) (*model.URL, erro
 	args := pgx.NamedArgs{
 		"shortKey": shortKey,
 	}
-	rows, err := s.db.Query(ctx, query, args)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get rows: %w", err)
-	}
+	row := s.db.QueryRow(ctx, query, args)
 
 	var url model.URL
-	rowsProceed := 0
-	for rows.Next() {
-		if err := rows.Scan(&url.ID, &url.ShortKey, &url.OriginalURL); err != nil {
-			return nil, fmt.Errorf("failed to assign database row to model: %w", err)
-		}
-
-		rowsProceed++
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	if rowsProceed == 0 {
-		return nil, storage.ErrNotFound
+	if err := row.Scan(&url.ID, &url.ShortKey, &url.OriginalURL); err != nil {
+		return nil, fmt.Errorf("failed to assign database row to model: %w", err)
 	}
 
 	return &url, nil
@@ -80,27 +66,11 @@ func (s *Storage) GetURLByOriginal(ctx context.Context, originalURL string) (*mo
 	args := pgx.NamedArgs{
 		"originalURL": originalURL,
 	}
-	rows, err := s.db.Query(ctx, query, args)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get rows: %w", err)
-	}
+	row := s.db.QueryRow(ctx, query, args)
 
 	var url model.URL
-	rowsProceed := 0
-	for rows.Next() {
-		if err := rows.Scan(&url.ID, &url.ShortKey, &url.OriginalURL); err != nil {
-			return nil, fmt.Errorf("failed to assign database row to model: %w", err)
-		}
-
-		rowsProceed++
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	if rowsProceed == 0 {
-		return nil, storage.ErrNotFound
+	if err := row.Scan(&url.ID, &url.ShortKey, &url.OriginalURL); err != nil {
+		return nil, fmt.Errorf("failed to assign database row to model: %w", err)
 	}
 
 	return &url, nil
