@@ -123,7 +123,7 @@ func TestURL_CreateShortURL(t *testing.T) {
 				ShortKey:    "ABCDE",
 			},
 			shortKeyLength:       10,
-			expectedLength:       27,
+			expectedLength:       22,
 			expectedUrlmapLength: 1,
 		},
 		"base url with last slash": {
@@ -134,7 +134,7 @@ func TestURL_CreateShortURL(t *testing.T) {
 				ShortKey:    "ABCDE",
 			},
 			shortKeyLength:       10,
-			expectedLength:       27,
+			expectedLength:       22,
 			expectedUrlmapLength: 1,
 		},
 	}
@@ -157,10 +157,8 @@ func TestURL_CreateShortURL(t *testing.T) {
 			if tt.expectedError == nil {
 				assert.Equal(t, tt.expectedError, err)
 
-				urlParts := strings.Split(shortURL, "/")
-				shortKey := urlParts[len(urlParts)-1]
 				urlStorage.AssertCalled(t, "SetURL", ctx,
-					mock.MatchedBy(func(url *model.URL) bool { return url.ShortKey == shortKey && url.OriginalURL == tt.originalURL }))
+					mock.MatchedBy(func(url *model.URL) bool { return url.OriginalURL == tt.originalURL }))
 
 				assert.Len(t, shortURL, tt.expectedLength)
 				assert.True(t, strings.HasPrefix(shortURL, tt.baseURL))

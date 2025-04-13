@@ -72,7 +72,11 @@ func (s *Storage) SetURL(ctx context.Context, url *model.URL) (*model.URL, error
 		return nil, fmt.Errorf("failed to save url: %w", err)
 	}
 
-	return &savedURL, nil
+	if url.ID != savedURL.ID {
+		err = storage.ErrConflict
+	}
+
+	return &savedURL, err
 }
 
 func (s *Storage) SetURLs(ctx context.Context, urls []*model.URL) (savedURLs []*model.URL, err error) {

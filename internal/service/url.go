@@ -72,9 +72,9 @@ func (s *URL) CreateShortURL(ctx context.Context, originalURL string) (string, e
 	if err != nil && !errors.Is(err, storage.ErrConflict) {
 		return "", fmt.Errorf("failed to set URL: %w", err)
 	}
+	shortKey = savedURL.ShortKey
 
 	if errors.Is(err, storage.ErrConflict) {
-		shortKey = savedURL.ShortKey
 		responseError = ErrConflict
 	}
 
