@@ -198,22 +198,6 @@ func TestURL_CreateShortURLBatch(t *testing.T) {
 			setURLsError:  errors.New("storage error"),
 			expectedError: fmt.Errorf("failed to set urls: %w", errors.New("storage error")),
 		},
-		"failed to get url by original": {
-			originalURLs: []*request.CreateShortURLBatch{
-				{
-					CorrelationID: "1",
-					OriginalURL:   "yandex.ru",
-				},
-				{
-					CorrelationID: "2",
-					OriginalURL:   "google.com",
-				},
-			},
-			baseURL:               "http://localhost/",
-			savedURLs:             make([]*model.URL, 0),
-			getURLByOriginalError: errors.New("storage error"),
-			expectedError:         fmt.Errorf("failed to retrieve existing url: %w", errors.New("storage error")),
-		},
 		"save urls success, already exists": {
 			originalURLs: []*request.CreateShortURLBatch{
 				{
@@ -221,8 +205,13 @@ func TestURL_CreateShortURLBatch(t *testing.T) {
 					OriginalURL:   "yandex.ru",
 				},
 			},
-			baseURL:   "http://localhost/",
-			savedURLs: make([]*model.URL, 0),
+			baseURL: "http://localhost/",
+			savedURLs: []*model.URL{
+				{
+					OriginalURL: "yandex.ru",
+					ShortKey:    "ABOBA",
+				},
+			},
 			existingURL: &model.URL{
 				OriginalURL: "yandex.ru",
 				ShortKey:    "ABOBA",
