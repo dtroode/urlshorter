@@ -27,34 +27,27 @@ func main() {
 
 	logger := logger.NewLog(config.LogLevel)
 
-	logger.Info("config: ", "value", config)
-
-	healthService := &service.Health{}
-
 	var urlStorage storage.Storage
 	dsn := config.DatabaseDSN
 	if dsn != "" {
-		pgStorage, err := postgres.NewStorage(dsn)
+		urlStorage, err = postgres.NewStorage(dsn)
 		if err != nil {
 			logger.Error("failed to create database storage", "error", err)
 			os.Exit(1)
 		}
-		urlStorage = pgStorage
 		logger.Debug("using database storage")
-
-		healthService.DB = pgStorage
 	} else {
 		urlStorage, err = inmemory.NewStorage(config.FileStoragePath)
 		if err != nil {
 			logger.Error("failed to create inmemory storage", "error", err, "file", config.FileStoragePath)
 			os.Exit(1)
 		}
-
 		logger.Debug("using inmemory storage")
 	}
 	defer urlStorage.Close()
 
 	urlService := service.NewURL(config.BaseURL, config.ShortKeyLength, urlStorage)
+	healthService := service.NewHealth(urlStorage)
 
 	r := router.NewRouter()
 	r.RegisterAPIRoutes(urlService, logger)

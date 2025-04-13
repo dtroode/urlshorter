@@ -44,86 +44,35 @@ func (s *Storage) Ping(ctx context.Context) error {
 }
 
 func (s *Storage) GetURL(ctx context.Context, shortKey string) (*model.URL, error) {
-	query := `SELECT id, short_key, original_url FROM urls WHERE short_key = @shortKey`
-	args := pgx.NamedArgs{
-		"shortKey": shortKey,
-	}
-	rows, err := s.db.Query(ctx, query, args)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get rows: %w", err)
-	}
-
 	var url model.URL
-	rowsProceed := 0
-	for rows.Next() {
-		if err := rows.Scan(&url.ID, &url.ShortKey, &url.OriginalURL); err != nil {
-			return nil, fmt.Errorf("failed to assign database row to model: %w", err)
+	query := `SELECT id, short_key, original_url FROM urls WHERE short_key = $1`
+	err := s.db.QueryRow(ctx, query, shortKey).Scan(&url.ID, &url.ShortKey, &url.OriginalURL)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, storage.ErrNotFound
 		}
-
-		rowsProceed++
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	if rowsProceed == 0 {
-		return nil, storage.ErrNotFound
 	}
 
 	return &url, nil
 }
 
-func (s *Storage) GetURLByOriginal(ctx context.Context, originalURL string) (*model.URL, error) {
-	query := `SELECT id, short_key, original_url FROM urls WHERE original_url = @originalURL LIMIT 1`
-	args := pgx.NamedArgs{
-		"originalURL": originalURL,
-	}
-	rows, err := s.db.Query(ctx, query, args)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get rows: %w", err)
-	}
-
-	var url model.URL
-	rowsProceed := 0
-	for rows.Next() {
-		if err := rows.Scan(&url.ID, &url.ShortKey, &url.OriginalURL); err != nil {
-			return nil, fmt.Errorf("failed to assign database row to model: %w", err)
-		}
-
-		rowsProceed++
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	if rowsProceed == 0 {
-		return nil, storage.ErrNotFound
-	}
-
-	return &url, nil
-}
-
-func (s *Storage) SetURL(ctx context.Context, url *model.URL) error {
+func (s *Storage) SetURL(ctx context.Context, url *model.URL) (*model.URL, error) {
+	var savedURL model.URL
 	query := `
 	INSERT INTO urls (id, short_key, original_url) VALUES (@id, @shortKey, @originalURL)
-	ON CONFLICT (original_url) DO NOTHING`
+	ON CONFLICT (original_url) DO UPDATE SET short_key = urls.short_key
+	RETURNING id, short_key, original_url`
 	args := pgx.NamedArgs{
 		"id":          url.ID,
 		"shortKey":    url.ShortKey,
 		"originalURL": url.OriginalURL,
 	}
-	tag, err := s.db.Exec(ctx, query, args)
+	err := s.db.QueryRow(ctx, query, args).Scan(&savedURL.ID, &savedURL.ShortKey, &savedURL.OriginalURL)
 	if err != nil {
-		return fmt.Errorf("failed to save url: %w", err)
+		return nil, fmt.Errorf("failed to save url: %w", err)
 	}
 
-	if tag.RowsAffected() == 0 {
-		return storage.ErrConflict
-	}
-
-	return nil
+	return &savedURL, nil
 }
 
 func (s *Storage) SetURLs(ctx context.Context, urls []*model.URL) (savedURLs []*model.URL, err error) {
@@ -135,7 +84,8 @@ func (s *Storage) SetURLs(ctx context.Context, urls []*model.URL) (savedURLs []*
 
 	query := `
 	INSERT INTO urls (id, short_key, original_url) VALUES (@id, @shortKey, @originalURL)
-	ON CONFLICT (original_url) DO NOTHING RETURNING id, short_key, original_url`
+	ON CONFLICT (original_url) DO UPDATE SET short_key = urls.short_key
+	RETURNING id, short_key, original_url`
 
 	for _, url := range urls {
 		args := pgx.NamedArgs{
@@ -143,15 +93,9 @@ func (s *Storage) SetURLs(ctx context.Context, urls []*model.URL) (savedURLs []*
 			"shortKey":    url.ShortKey,
 			"originalURL": url.OriginalURL,
 		}
-		row := tx.QueryRow(ctx, query, args)
-
 		var savedURL model.URL
-
-		err := row.Scan(&savedURL.ID, &savedURL.ShortKey, &savedURL.OriginalURL)
+		err := tx.QueryRow(ctx, query, args).Scan(&savedURL.ID, &savedURL.ShortKey, &savedURL.OriginalURL)
 		if err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				continue
-			}
 			tx.Rollback(ctx)
 
 			return nil, fmt.Errorf("failed to save url: %w", err)

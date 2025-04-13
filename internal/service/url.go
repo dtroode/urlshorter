@@ -16,8 +16,7 @@ import (
 
 type URLStorage interface {
 	GetURL(ctx context.Context, shortKey string) (*model.URL, error)
-	GetURLByOriginal(ctx context.Context, originalURL string) (*model.URL, error)
-	SetURL(ctx context.Context, url *model.URL) error
+	SetURL(ctx context.Context, url *model.URL) (*model.URL, error)
 	SetURLs(ctx context.Context, urls []*model.URL) (savedURLs []*model.URL, err error)
 }
 
@@ -52,44 +51,39 @@ func (s *URL) generateString() string {
 	return sb.String()
 }
 
-func (s *URL) GetOriginalURL(ctx context.Context, id string) (*string, error) {
+func (s *URL) GetOriginalURL(ctx context.Context, id string) (string, error) {
 	url, err := s.storage.GetURL(ctx, id)
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
-			return nil, ErrNotFound
+			return "", ErrNotFound
 		}
-		return nil, fmt.Errorf("failed to get original URL: %w", err)
+		return "", fmt.Errorf("failed to get original URL: %w", err)
 	}
 
-	return &url.OriginalURL, nil
+	return url.OriginalURL, nil
 }
 
-func (s *URL) CreateShortURL(ctx context.Context, originalURL string) (*string, error) {
+func (s *URL) CreateShortURL(ctx context.Context, originalURL string) (string, error) {
 	shortKey := s.generateString()
 	var responseError error
 
 	urlModel := model.NewURL(shortKey, originalURL)
-	err := s.storage.SetURL(ctx, urlModel)
+	savedURL, err := s.storage.SetURL(ctx, urlModel)
 	if err != nil && !errors.Is(err, storage.ErrConflict) {
-		return nil, fmt.Errorf("failed to set URL: %w", err)
+		return "", fmt.Errorf("failed to set URL: %w", err)
 	}
 
 	if errors.Is(err, storage.ErrConflict) {
-		url, err := s.storage.GetURLByOriginal(ctx, originalURL)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get existing url: %w", err)
-		}
-
-		shortKey = url.ShortKey
+		shortKey = savedURL.ShortKey
 		responseError = ErrConflict
 	}
 
 	shortURL, joinErr := url.JoinPath(s.baseURL, shortKey)
 	if joinErr != nil {
-		return nil, ErrInternal
+		return "", ErrInternal
 	}
 
-	return &shortURL, responseError
+	return shortURL, responseError
 }
 
 func (s *URL) CreateShortURLBatch(ctx context.Context, urls []*request.CreateShortURLBatch) ([]*response.CreateShortURLBatch, error) {
@@ -109,7 +103,6 @@ func (s *URL) CreateShortURLBatch(ctx context.Context, urls []*request.CreateSho
 		return nil, fmt.Errorf("failed to set urls: %w", err)
 	}
 
-Loop:
 	for _, reqURL := range urls {
 		respURL := response.CreateShortURLBatch{
 			CorrelationID: reqURL.CorrelationID,
@@ -124,22 +117,8 @@ Loop:
 
 				respURL.ShortURL = shortURL
 				resp = append(resp, &respURL)
-				continue Loop
 			}
 		}
-
-		existingURL, err := s.storage.GetURLByOriginal(ctx, reqURL.OriginalURL)
-		if err != nil {
-			return nil, fmt.Errorf("failed to retrieve existing url: %w", err)
-		}
-
-		shortURL, err := url.JoinPath(s.baseURL, existingURL.ShortKey)
-		if err != nil {
-			return nil, ErrInternal
-		}
-
-		respURL.ShortURL = shortURL
-		resp = append(resp, &respURL)
 	}
 
 	return resp, nil

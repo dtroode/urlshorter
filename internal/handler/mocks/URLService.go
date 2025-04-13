@@ -26,24 +26,22 @@ func (_m *URLService) EXPECT() *URLService_Expecter {
 }
 
 // CreateShortURL provides a mock function with given fields: ctx, originalURL
-func (_m *URLService) CreateShortURL(ctx context.Context, originalURL string) (*string, error) {
+func (_m *URLService) CreateShortURL(ctx context.Context, originalURL string) (string, error) {
 	ret := _m.Called(ctx, originalURL)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CreateShortURL")
 	}
 
-	var r0 *string
+	var r0 string
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) (*string, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string) (string, error)); ok {
 		return rf(ctx, originalURL)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) *string); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string) string); ok {
 		r0 = rf(ctx, originalURL)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*string)
-		}
+		r0 = ret.Get(0).(string)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
@@ -74,12 +72,12 @@ func (_c *URLService_CreateShortURL_Call) Run(run func(ctx context.Context, orig
 	return _c
 }
 
-func (_c *URLService_CreateShortURL_Call) Return(_a0 *string, _a1 error) *URLService_CreateShortURL_Call {
+func (_c *URLService_CreateShortURL_Call) Return(_a0 string, _a1 error) *URLService_CreateShortURL_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *URLService_CreateShortURL_Call) RunAndReturn(run func(context.Context, string) (*string, error)) *URLService_CreateShortURL_Call {
+func (_c *URLService_CreateShortURL_Call) RunAndReturn(run func(context.Context, string) (string, error)) *URLService_CreateShortURL_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -144,24 +142,22 @@ func (_c *URLService_CreateShortURLBatch_Call) RunAndReturn(run func(context.Con
 }
 
 // GetOriginalURL provides a mock function with given fields: ctx, id
-func (_m *URLService) GetOriginalURL(ctx context.Context, id string) (*string, error) {
+func (_m *URLService) GetOriginalURL(ctx context.Context, id string) (string, error) {
 	ret := _m.Called(ctx, id)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetOriginalURL")
 	}
 
-	var r0 *string
+	var r0 string
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) (*string, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string) (string, error)); ok {
 		return rf(ctx, id)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) *string); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string) string); ok {
 		r0 = rf(ctx, id)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*string)
-		}
+		r0 = ret.Get(0).(string)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
@@ -192,12 +188,12 @@ func (_c *URLService_GetOriginalURL_Call) Run(run func(ctx context.Context, id s
 	return _c
 }
 
-func (_c *URLService_GetOriginalURL_Call) Return(_a0 *string, _a1 error) *URLService_GetOriginalURL_Call {
+func (_c *URLService_GetOriginalURL_Call) Return(_a0 string, _a1 error) *URLService_GetOriginalURL_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *URLService_GetOriginalURL_Call) RunAndReturn(run func(context.Context, string) (*string, error)) *URLService_GetOriginalURL_Call {
+func (_c *URLService_GetOriginalURL_Call) RunAndReturn(run func(context.Context, string) (string, error)) *URLService_GetOriginalURL_Call {
 	_c.Call.Return(run)
 	return _c
 }

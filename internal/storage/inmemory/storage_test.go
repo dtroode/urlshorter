@@ -1,10 +1,10 @@
 package inmemory
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -62,7 +62,7 @@ func TestStorage_GetURL(t *testing.T) {
 }
 
 type dummyFile struct {
-	*bufio.Writer
+	*bytes.Buffer
 }
 
 func (f *dummyFile) Close() error {
@@ -113,14 +113,15 @@ func TestURL_SetURL(t *testing.T) {
 		t.Run(tn, func(t *testing.T) {
 			s := Storage{
 				urlmap:  tt.urlmap,
-				file:    &dummyFile{Writer: bufio.NewWriter(buf)},
+				file:    &dummyFile{Buffer: buf},
 				encoder: json.NewEncoder(buf),
 			}
 
-			err := s.SetURL(context.Background(), tt.url)
+			url, err := s.SetURL(context.Background(), tt.url)
 			require.NoError(t, err)
 
 			assert.Equal(t, tt.url, (tt.urlmap)[tt.url.ShortKey])
+			assert.Equal(t, tt.url, url)
 
 			line, err := buf.ReadBytes('\n')
 			require.NoError(t, err)
@@ -161,7 +162,7 @@ func TestURL_SetURLs(t *testing.T) {
 		t.Run(tn, func(t *testing.T) {
 			s := Storage{
 				urlmap:  tt.urlmap,
-				file:    &dummyFile{Writer: bufio.NewWriter(buf)},
+				file:    &dummyFile{Buffer: buf},
 				encoder: json.NewEncoder(buf),
 			}
 
@@ -172,6 +173,9 @@ func TestURL_SetURLs(t *testing.T) {
 
 			for _, u := range tt.urls {
 				assert.Equal(t, u, (tt.urlmap)[u.ShortKey])
+
+				l := buf.Len()
+				fmt.Println(l)
 
 				line, err := buf.ReadBytes('\n')
 				require.NoError(t, err)

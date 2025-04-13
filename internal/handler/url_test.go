@@ -37,7 +37,7 @@ func TestHandler_GetShortURL(t *testing.T) {
 
 	tests := map[string]struct {
 		id              string
-		serviceResponse *string
+		serviceResponse string
 		serviceError    error
 		wantError       bool
 		wantStatusCode  int
@@ -54,9 +54,15 @@ func TestHandler_GetShortURL(t *testing.T) {
 			wantError:      true,
 			wantStatusCode: http.StatusInternalServerError,
 		},
+		"not found": {
+			id:             "d8398Sj3",
+			serviceError:   service.ErrNotFound,
+			wantError:      true,
+			wantStatusCode: http.StatusNotFound,
+		},
 		"success": {
 			id:              "d8398Sj3",
-			serviceResponse: &responseURL,
+			serviceResponse: responseURL,
 			wantStatusCode:  http.StatusTemporaryRedirect,
 			wantResponse:    responseURL,
 		},
@@ -109,7 +115,7 @@ func TestHandler_CreateShortURL(t *testing.T) {
 		url              string
 		readBodyResponse int
 		readBodyError    error
-		serviceResponse  *string
+		serviceResponse  string
 		serviceError     error
 		wantError        bool
 		wantContentType  string
@@ -133,7 +139,7 @@ func TestHandler_CreateShortURL(t *testing.T) {
 			body:             strings.NewReader(url),
 			readBodyResponse: 0,
 			serviceError:     service.ErrConflict,
-			serviceResponse:  &responseURL,
+			serviceResponse:  responseURL,
 			wantStatusCode:   http.StatusConflict,
 			wantContentType:  "text/plain",
 			wantResponse:     []byte(responseURL),
@@ -141,7 +147,7 @@ func TestHandler_CreateShortURL(t *testing.T) {
 		"success": {
 			body:             strings.NewReader(url),
 			readBodyResponse: 0,
-			serviceResponse:  &responseURL,
+			serviceResponse:  responseURL,
 			wantStatusCode:   http.StatusCreated,
 			wantContentType:  "text/plain",
 			wantResponse:     []byte(responseURL),
@@ -185,7 +191,7 @@ func TestHandler_CreateShortURLJSON(t *testing.T) {
 
 	tests := map[string]struct {
 		body            string
-		serviceResponse *string
+		serviceResponse string
 		serviceError    error
 		wantError       bool
 		wantStatusCode  int
@@ -206,14 +212,14 @@ func TestHandler_CreateShortURLJSON(t *testing.T) {
 		"service error conflict": {
 			body:            fmt.Sprintf(`{"url": "%s"}`, url),
 			serviceError:    service.ErrConflict,
-			serviceResponse: &responseURL,
+			serviceResponse: responseURL,
 			wantStatusCode:  http.StatusConflict,
 			wantContentType: "application/json",
 			wantResponse:    fmt.Sprintf(`{"result": "%s"}`, responseURL),
 		},
 		"success": {
 			body:            fmt.Sprintf(`{"url": "%s"}`, url),
-			serviceResponse: &responseURL,
+			serviceResponse: responseURL,
 			wantStatusCode:  http.StatusCreated,
 			wantContentType: "application/json",
 			wantResponse:    fmt.Sprintf(`{"result": "%s"}`, responseURL),

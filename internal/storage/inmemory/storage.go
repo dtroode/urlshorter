@@ -7,11 +7,17 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/dtroode/urlshorter/internal/model"
 	"github.com/dtroode/urlshorter/internal/storage"
 )
+
+type File interface {
+	io.WriteCloser
+	io.StringWriter
+}
 
 type URLMap map[string]*model.URL
 
@@ -33,7 +39,7 @@ func (m URLMap) UnmarshalJSON(d []byte) error {
 type Storage struct {
 	urlmap  URLMap
 	mu      sync.RWMutex
-	file    io.WriteCloser
+	file    File
 	encoder *json.Encoder
 }
 
@@ -88,49 +94,54 @@ func (s *Storage) GetURL(_ context.Context, shortKey string) (*model.URL, error)
 	return val, nil
 }
 
-func (s *Storage) GetURLByOriginal(ctx context.Context, originalURL string) (*model.URL, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	for _, url := range s.urlmap {
-		if url.OriginalURL == originalURL {
-			return url, nil
-		}
-	}
-
-	return nil, storage.ErrNotFound
-}
-
 func (s *Storage) saveToFile(_ context.Context, url *model.URL) error {
 	return s.encoder.Encode(url)
 }
 
-func (s *Storage) SetURL(ctx context.Context, url *model.URL) error {
+func (s *Storage) saveToFileBatch(_ context.Context, urls string) error {
+	_, err := s.file.WriteString(urls)
+	return err
+}
+
+func (s *Storage) SetURL(ctx context.Context, url *model.URL) (*model.URL, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	s.urlmap[url.ShortKey] = url
 
 	if err := s.saveToFile(ctx, url); err != nil {
-		return fmt.Errorf("failed to encode url to file: %w", err)
+		return nil, fmt.Errorf("failed to encode url to file: %w", err)
 	}
 
-	return nil
+	return url, nil
 }
 
-func (s *Storage) SetURLs(ctx context.Context, urls []*model.URL) (savedURLs []*model.URL, err error) {
+func (s *Storage) SetURLs(ctx context.Context, urls []*model.URL) ([]*model.URL, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	var builder strings.Builder
 
 	for _, url := range urls {
 		s.urlmap[url.ShortKey] = url
 
-		if err = s.saveToFile(ctx, url); err != nil {
-			return nil, fmt.Errorf("failed to encode url to file: %w", err)
+		b, err := json.Marshal(url)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal url: %w", err)
 		}
 
-		savedURLs = append(savedURLs, url)
+		if _, err := builder.WriteString(string(b) + "\n"); err != nil {
+			return nil, fmt.Errorf("failed write url to buffer: %w", err)
+		}
 	}
 
-	return
+	if err := s.saveToFileBatch(ctx, builder.String()); err != nil {
+		return nil, fmt.Errorf("failed to encode urls to file: %w", err)
+	}
+
+	return urls, nil
+}
+
+func (s *Storage) Ping(ctx context.Context) error {
+	return nil
 }

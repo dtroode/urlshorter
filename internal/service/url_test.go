@@ -27,7 +27,7 @@ func TestURL_GetOriginalURL(t *testing.T) {
 		shortKey         string
 		storageResponse  *model.URL
 		storageError     error
-		expectedResponse *string
+		expectedResponse string
 		expectedError    error
 	}{
 		"storage error": {
@@ -37,7 +37,7 @@ func TestURL_GetOriginalURL(t *testing.T) {
 		},
 		"success": {
 			shortKey:         shortKey,
-			expectedResponse: &originalURL,
+			expectedResponse: originalURL,
 			storageResponse: &model.URL{
 				ID:          uuid.New(),
 				ShortKey:    shortKey,
@@ -76,58 +76,63 @@ func TestURL_GetOriginalURL(t *testing.T) {
 
 func TestURL_CreateShortURL(t *testing.T) {
 	tests := map[string]struct {
-		originalURL           string
-		baseURL               string
-		shortKeyLength        int
-		setURLError           error
-		exitstingURL          *model.URL
-		getURLByOriginalError error
-		expectedUrlmapLength  int
-		expectedLength        int
-		expectedError         error
+		originalURL          string
+		baseURL              string
+		shortKeyLength       int
+		setURLResponse       *model.URL
+		setURLError          error
+		expectedUrlmapLength int
+		expectedLength       int
+		expectedError        error
 	}{
 		"storage error": {
 			originalURL:   "yandex.ru",
 			setURLError:   errors.New("storage error"),
 			expectedError: fmt.Errorf("failed to set URL: %w", errors.New("storage error")),
 		},
-		"failed to retrieve existing short": {
-			originalURL:           "yandex.ru",
-			setURLError:           storage.ErrConflict,
-			getURLByOriginalError: errors.New("storage error"),
-			expectedError:         fmt.Errorf("failed to get existing url: %w", errors.New("storage error")),
-		},
 		// ascii control character used here as base URL
 		// this causes url.JoinPath to fail
 		"failed to join path": {
-			originalURL:    "yandex.ru",
-			baseURL:        string(rune(0x7f)),
+			originalURL: "yandex.ru",
+			baseURL:     string(rune(0x7f)),
+			setURLResponse: &model.URL{
+				OriginalURL: "yandex.ru",
+				ShortKey:    "ABCDE",
+			},
 			shortKeyLength: 10,
 			expectedError:  ErrInternal,
 		},
 		"url already exists": {
 			originalURL: "yandex.ru",
 			baseURL:     "http://localhost",
-			setURLError: storage.ErrConflict,
-			exitstingURL: &model.URL{
+			setURLResponse: &model.URL{
 				OriginalURL: "yandex.ru",
 				ShortKey:    "ABCDE",
 			},
+			setURLError:          storage.ErrConflict,
 			shortKeyLength:       5,
 			expectedLength:       22,
 			expectedUrlmapLength: 1,
 			expectedError:        storage.ErrConflict,
 		},
 		"base url without last slash": {
-			originalURL:          "yandex.ru",
-			baseURL:              "http://localhost",
+			originalURL: "yandex.ru",
+			baseURL:     "http://localhost",
+			setURLResponse: &model.URL{
+				OriginalURL: "yandex.ru",
+				ShortKey:    "ABCDE",
+			},
 			shortKeyLength:       10,
 			expectedLength:       27,
 			expectedUrlmapLength: 1,
 		},
 		"base url with last slash": {
-			originalURL:          "yandex.ru",
-			baseURL:              "http://localhost/",
+			originalURL: "yandex.ru",
+			baseURL:     "http://localhost/",
+			setURLResponse: &model.URL{
+				OriginalURL: "yandex.ru",
+				ShortKey:    "ABCDE",
+			},
 			shortKeyLength:       10,
 			expectedLength:       27,
 			expectedUrlmapLength: 1,
@@ -139,13 +144,12 @@ func TestURL_CreateShortURL(t *testing.T) {
 			ctx := context.Background()
 
 			urlStorage := mocks.NewURLStorage(t)
-			urlStorage.On("SetURL", mock.Anything, mock.Anything).Once().Return(tt.setURLError)
+			urlStorage.On("SetURL", mock.Anything, mock.Anything).Once().Return(tt.setURLResponse, tt.setURLError)
 			service := URL{
 				baseURL:        tt.baseURL,
 				shortKeyLength: tt.shortKeyLength,
 				storage:        urlStorage,
 			}
-			urlStorage.On("GetURLByOriginal", ctx, tt.originalURL).Maybe().Return(tt.exitstingURL, tt.getURLByOriginalError)
 
 			shortURL, err := service.CreateShortURL(ctx, tt.originalURL)
 			assert.Equal(t, tt.expectedError, err)
@@ -153,13 +157,13 @@ func TestURL_CreateShortURL(t *testing.T) {
 			if tt.expectedError == nil {
 				assert.Equal(t, tt.expectedError, err)
 
-				urlParts := strings.Split(*shortURL, "/")
+				urlParts := strings.Split(shortURL, "/")
 				shortKey := urlParts[len(urlParts)-1]
 				urlStorage.AssertCalled(t, "SetURL", ctx,
 					mock.MatchedBy(func(url *model.URL) bool { return url.ShortKey == shortKey && url.OriginalURL == tt.originalURL }))
 
-				assert.Len(t, *shortURL, tt.expectedLength)
-				assert.True(t, strings.HasPrefix(*shortURL, tt.baseURL))
+				assert.Len(t, shortURL, tt.expectedLength)
+				assert.True(t, strings.HasPrefix(shortURL, tt.baseURL))
 			}
 
 		})

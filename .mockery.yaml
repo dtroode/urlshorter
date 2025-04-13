@@ -23,5 +23,5 @@ packages:
             # select the interfaces you want mocked
             URLStorage:
                 config:
-            Database:
+            Pinger:
                 config:

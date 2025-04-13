@@ -16,8 +16,8 @@ import (
 )
 
 type URLService interface {
-	CreateShortURL(ctx context.Context, originalURL string) (*string, error)
-	GetOriginalURL(ctx context.Context, id string) (*string, error)
+	CreateShortURL(ctx context.Context, originalURL string) (string, error)
+	GetOriginalURL(ctx context.Context, id string) (string, error)
 	CreateShortURLBatch(ctx context.Context, urls []*request.CreateShortURLBatch) ([]*response.CreateShortURLBatch, error)
 }
 
@@ -45,13 +45,18 @@ func (h *URL) GetShortURL(w http.ResponseWriter, r *http.Request) {
 
 	originalURL, err := h.service.GetOriginalURL(ctx, id)
 	if err != nil {
+		if errors.Is(err, service.ErrNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+
+			return
+		}
 		h.logger.Error("service error", "error", err)
 		w.WriteHeader(http.StatusInternalServerError)
 
 		return
 	}
 
-	w.Header().Set("location", *originalURL)
+	w.Header().Set("location", originalURL)
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
@@ -81,7 +86,7 @@ func (h *URL) CreateShortURL(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusCreated)
 	}
 
-	w.Write([]byte(*shortURL))
+	w.Write([]byte(shortURL))
 }
 
 func (h *URL) CreateShortURLJSON(w http.ResponseWriter, r *http.Request) {
@@ -111,7 +116,7 @@ func (h *URL) CreateShortURLJSON(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := response.CreateShortURL{
-		URL: *shortURL,
+		URL: shortURL,
 	}
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
