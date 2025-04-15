@@ -9,13 +9,14 @@ import (
 	"strings"
 
 	"github.com/dtroode/urlshorter/internal/model"
-	"github.com/dtroode/urlshorter/internal/request"
 	"github.com/dtroode/urlshorter/internal/response"
 	"github.com/dtroode/urlshorter/internal/storage"
+	"github.com/google/uuid"
 )
 
 type URLStorage interface {
 	GetURL(ctx context.Context, shortKey string) (*model.URL, error)
+	GetURLByUserID(ctx context.Context, userID uuid.UUID) ([]*model.URL, error)
 	SetURL(ctx context.Context, url *model.URL) (*model.URL, error)
 	SetURLs(ctx context.Context, urls []*model.URL) (savedURLs []*model.URL, err error)
 }
@@ -63,11 +64,11 @@ func (s *URL) GetOriginalURL(ctx context.Context, id string) (string, error) {
 	return url.OriginalURL, nil
 }
 
-func (s *URL) CreateShortURL(ctx context.Context, originalURL string) (string, error) {
+func (s *URL) CreateShortURL(ctx context.Context, dto *CreateShortURLDTO) (string, error) {
 	shortKey := s.generateString()
 	var responseError error
 
-	urlModel := model.NewURL(shortKey, originalURL)
+	urlModel := model.NewURL(shortKey, dto.OriginalURL, dto.UserID)
 	savedURL, err := s.storage.SetURL(ctx, urlModel)
 	if err != nil && !errors.Is(err, storage.ErrConflict) {
 		return "", fmt.Errorf("failed to set URL: %w", err)
@@ -86,15 +87,15 @@ func (s *URL) CreateShortURL(ctx context.Context, originalURL string) (string, e
 	return shortURL, responseError
 }
 
-func (s *URL) CreateShortURLBatch(ctx context.Context, urls []*request.CreateShortURLBatch) ([]*response.CreateShortURLBatch, error) {
+func (s *URL) CreateShortURLBatch(ctx context.Context, dto *CreateShortURLBatchDTO) ([]*response.CreateShortURLBatch, error) {
 	resp := make([]*response.CreateShortURLBatch, 0)
 
 	urlModels := make([]*model.URL, 0)
 
-	for _, reqURL := range urls {
+	for _, reqURL := range dto.URLs {
 		shortKey := s.generateString()
 
-		urlModel := model.NewURL(shortKey, reqURL.OriginalURL)
+		urlModel := model.NewURL(shortKey, reqURL.OriginalURL, dto.UserID)
 		urlModels = append(urlModels, urlModel)
 	}
 
@@ -103,7 +104,7 @@ func (s *URL) CreateShortURLBatch(ctx context.Context, urls []*request.CreateSho
 		return nil, fmt.Errorf("failed to set urls: %w", err)
 	}
 
-	for _, reqURL := range urls {
+	for _, reqURL := range dto.URLs {
 		respURL := response.CreateShortURLBatch{
 			CorrelationID: reqURL.CorrelationID,
 		}
@@ -119,6 +120,34 @@ func (s *URL) CreateShortURLBatch(ctx context.Context, urls []*request.CreateSho
 				resp = append(resp, &respURL)
 			}
 		}
+	}
+
+	return resp, nil
+}
+
+func (s *URL) GetUserURLs(ctx context.Context, userID uuid.UUID) ([]*response.GetUserURL, error) {
+	urls, err := s.storage.GetURLByUserID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get urls: %w", err)
+	}
+
+	if len(urls) == 0 {
+		return nil, ErrNoContent
+	}
+
+	resp := make([]*response.GetUserURL, len(urls))
+
+	for i, u := range urls {
+		shortURL, err := url.JoinPath(s.baseURL, u.ShortKey)
+		if err != nil {
+			return nil, ErrInternal
+		}
+
+		respURL := response.GetUserURL{
+			ShortURL:    shortURL,
+			OriginalURL: u.OriginalURL,
+		}
+		resp[i] = &respURL
 	}
 
 	return resp, nil

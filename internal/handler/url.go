@@ -8,7 +8,9 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 
+	"github.com/dtroode/urlshorter/internal/auth"
 	"github.com/dtroode/urlshorter/internal/logger"
 	"github.com/dtroode/urlshorter/internal/request"
 	"github.com/dtroode/urlshorter/internal/response"
@@ -16,9 +18,10 @@ import (
 )
 
 type URLService interface {
-	CreateShortURL(ctx context.Context, originalURL string) (string, error)
 	GetOriginalURL(ctx context.Context, id string) (string, error)
-	CreateShortURLBatch(ctx context.Context, urls []*request.CreateShortURLBatch) ([]*response.CreateShortURLBatch, error)
+	GetUserURLs(ctx context.Context, userID uuid.UUID) ([]*response.GetUserURL, error)
+	CreateShortURL(ctx context.Context, dto *service.CreateShortURLDTO) (string, error)
+	CreateShortURLBatch(ctx context.Context, dto *service.CreateShortURLBatchDTO) ([]*response.CreateShortURLBatch, error)
 }
 
 type URL struct {
@@ -62,6 +65,14 @@ func (h *URL) GetShortURL(w http.ResponseWriter, r *http.Request) {
 
 func (h *URL) CreateShortURL(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	userID, ok := auth.GetUserIDFromContext(ctx)
+	if !ok {
+		h.logger.Error("failed to get user id from context")
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
+
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -70,7 +81,8 @@ func (h *URL) CreateShortURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	url := string(body)
-	shortURL, err := h.service.CreateShortURL(ctx, url)
+	dto := service.NewCreateShortURLDTO(url, userID)
+	shortURL, err := h.service.CreateShortURL(ctx, dto)
 	if err != nil && !errors.Is(err, service.ErrConflict) {
 		h.logger.Error("service error", "error", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -91,6 +103,13 @@ func (h *URL) CreateShortURL(w http.ResponseWriter, r *http.Request) {
 
 func (h *URL) CreateShortURLJSON(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	userID, ok := auth.GetUserIDFromContext(ctx)
+	if !ok {
+		h.logger.Error("failed to get user id from context")
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
 
 	request := request.CreateShortURL{}
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -100,7 +119,8 @@ func (h *URL) CreateShortURLJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortURL, err := h.service.CreateShortURL(ctx, request.URL)
+	dto := service.NewCreateShortURLDTO(request.URL, userID)
+	shortURL, err := h.service.CreateShortURL(ctx, dto)
 	if err != nil && !errors.Is(err, service.ErrConflict) {
 		h.logger.Error("service error", "error", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -119,6 +139,7 @@ func (h *URL) CreateShortURLJSON(w http.ResponseWriter, r *http.Request) {
 		URL: shortURL,
 	}
 	if err := json.NewEncoder(w).Encode(response); err != nil {
+		h.logger.Error("failed to encode response", "error", err)
 		w.WriteHeader(http.StatusInternalServerError)
 
 		return
@@ -127,6 +148,13 @@ func (h *URL) CreateShortURLJSON(w http.ResponseWriter, r *http.Request) {
 
 func (h *URL) CreateShortURLBatch(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	userID, ok := auth.GetUserIDFromContext(ctx)
+	if !ok {
+		h.logger.Error("failed to get user id from context")
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
 
 	request := []*request.CreateShortURLBatch{}
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -142,7 +170,8 @@ func (h *URL) CreateShortURLBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortURLs, err := h.service.CreateShortURLBatch(ctx, request)
+	dto := service.NewCreateShortURLBatchDTO(request, userID)
+	shortURLs, err := h.service.CreateShortURLBatch(ctx, dto)
 	if err != nil {
 		h.logger.Error("service error", "error", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -154,6 +183,42 @@ func (h *URL) CreateShortURLBatch(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 
 	if err := json.NewEncoder(w).Encode(shortURLs); err != nil {
+		h.logger.Error("failed to encode response", "error", err)
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
+}
+
+func (h *URL) GetUserURLs(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID, ok := auth.GetUserIDFromContext(ctx)
+	if !ok {
+		h.logger.Error("failed to get user id from context")
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
+
+	userURLs, err := h.service.GetUserURLs(ctx, userID)
+	if err != nil {
+		if errors.Is(err, service.ErrNoContent) {
+			w.WriteHeader(http.StatusNoContent)
+
+			return
+		}
+
+		h.logger.Error("service error", "error", err)
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
+
+	w.Header().Set("content-type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	if err := json.NewEncoder(w).Encode(userURLs); err != nil {
+		h.logger.Error("failed to encode response", "error", err)
 		w.WriteHeader(http.StatusInternalServerError)
 
 		return

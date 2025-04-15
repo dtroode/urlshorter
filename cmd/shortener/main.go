@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/dtroode/urlshorter/config"
+	"github.com/dtroode/urlshorter/internal/auth"
 	"github.com/dtroode/urlshorter/internal/logger"
 	"github.com/dtroode/urlshorter/internal/router"
 	"github.com/dtroode/urlshorter/internal/service"
@@ -49,8 +50,10 @@ func main() {
 	urlService := service.NewURL(config.BaseURL, config.ShortKeyLength, urlStorage)
 	healthService := service.NewHealth(urlStorage)
 
+	jwt := auth.NewJWT(config.JWTSecretKey)
+
 	r := router.NewRouter()
-	r.RegisterAPIRoutes(urlService, logger)
+	r.RegisterAPIRoutes(urlService, jwt, logger)
 	r.RegisterHealthRoutes(healthService, logger)
 
 	go func() {

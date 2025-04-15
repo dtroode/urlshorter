@@ -12,6 +12,7 @@ import (
 
 	"github.com/dtroode/urlshorter/internal/model"
 	"github.com/dtroode/urlshorter/internal/storage"
+	"github.com/google/uuid"
 )
 
 type File interface {
@@ -41,6 +42,10 @@ type Storage struct {
 	mu      sync.RWMutex
 	file    File
 	encoder *json.Encoder
+}
+
+func (s *Storage) Ping(ctx context.Context) error {
+	return nil
 }
 
 func NewStorage(filename string) (*Storage, error) {
@@ -142,6 +147,17 @@ func (s *Storage) SetURLs(ctx context.Context, urls []*model.URL) ([]*model.URL,
 	return urls, nil
 }
 
-func (s *Storage) Ping(ctx context.Context) error {
-	return nil
+func (s *Storage) GetURLByUserID(ctx context.Context, userID uuid.UUID) ([]*model.URL, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	urls := make([]*model.URL, 0)
+
+	for _, url := range s.urlmap {
+		if url.UserID == userID {
+			urls = append(urls, url)
+		}
+	}
+
+	return urls, nil
 }

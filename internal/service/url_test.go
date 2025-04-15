@@ -75,6 +75,8 @@ func TestURL_GetOriginalURL(t *testing.T) {
 }
 
 func TestURL_CreateShortURL(t *testing.T) {
+	userID := uuid.New()
+
 	tests := map[string]struct {
 		originalURL          string
 		baseURL              string
@@ -141,6 +143,8 @@ func TestURL_CreateShortURL(t *testing.T) {
 
 	for tn, tt := range tests {
 		t.Run(tn, func(t *testing.T) {
+			t.Parallel()
+
 			ctx := context.Background()
 
 			urlStorage := mocks.NewURLStorage(t)
@@ -151,14 +155,17 @@ func TestURL_CreateShortURL(t *testing.T) {
 				storage:        urlStorage,
 			}
 
-			shortURL, err := service.CreateShortURL(ctx, tt.originalURL)
+			dto := NewCreateShortURLDTO(tt.originalURL, userID)
+			shortURL, err := service.CreateShortURL(ctx, dto)
 			assert.Equal(t, tt.expectedError, err)
 
 			if tt.expectedError == nil {
 				assert.Equal(t, tt.expectedError, err)
 
 				urlStorage.AssertCalled(t, "SetURL", ctx,
-					mock.MatchedBy(func(url *model.URL) bool { return url.OriginalURL == tt.originalURL }))
+					mock.MatchedBy(func(url *model.URL) bool {
+						return url.OriginalURL == tt.originalURL && url.UserID == userID
+					}))
 
 				assert.Len(t, shortURL, tt.expectedLength)
 				assert.True(t, strings.HasPrefix(shortURL, tt.baseURL))
@@ -169,6 +176,8 @@ func TestURL_CreateShortURL(t *testing.T) {
 }
 
 func TestURL_CreateShortURLBatch(t *testing.T) {
+	userID := uuid.New()
+
 	tests := map[string]struct {
 		originalURLs          []*request.CreateShortURLBatch
 		baseURL               string
@@ -297,6 +306,8 @@ func TestURL_CreateShortURLBatch(t *testing.T) {
 
 	for tn, tt := range tests {
 		t.Run(tn, func(t *testing.T) {
+			t.Parallel()
+
 			ctx := context.Background()
 
 			urlStorage := mocks.NewURLStorage(t)
@@ -308,7 +319,8 @@ func TestURL_CreateShortURLBatch(t *testing.T) {
 				storage:        urlStorage,
 			}
 
-			shortURLs, err := service.CreateShortURLBatch(ctx, tt.originalURLs)
+			dto := NewCreateShortURLBatchDTO(tt.originalURLs, userID)
+			shortURLs, err := service.CreateShortURLBatch(ctx, dto)
 
 			if tt.expectedError != nil {
 				assert.Equal(t, tt.expectedError, err)
@@ -329,11 +341,131 @@ func TestURL_CreateShortURLBatch(t *testing.T) {
 				urlStorage.AssertCalled(t, "SetURLs", ctx,
 					mock.MatchedBy(func(urls []*model.URL) bool {
 						for i, u := range urls {
-							return u.OriginalURL == tt.originalURLs[i].OriginalURL
+							return u.OriginalURL == tt.originalURLs[i].OriginalURL && u.UserID == userID
 						}
 						return true
 					}))
 			}
+		})
+	}
+}
+
+func TestURL_GetUserURLs(t *testing.T) {
+	userID := uuid.New()
+
+	tests := map[string]struct {
+		baseURL          string
+		storageResponse  []*model.URL
+		storageError     error
+		expectedResponse []*response.GetUserURL
+		expectedError    error
+	}{
+		"storage error": {
+			baseURL:       "http://localhost",
+			storageError:  errors.New("storage error"),
+			expectedError: fmt.Errorf("failed to get urls: %w", errors.New("storage error")),
+		},
+		"no urls": {
+			baseURL:         "http://localhost",
+			storageResponse: make([]*model.URL, 0),
+			expectedError:   ErrNoContent,
+		},
+		// ascii control character used here as base URL
+		// this causes url.JoinPath to fail
+		"failed to join path": {
+			baseURL: string(rune(0x7f)),
+			storageResponse: []*model.URL{
+				{
+					ID:          uuid.New(),
+					OriginalURL: "http://yandex.ru",
+					ShortKey:    "ABCDE",
+					UserID:      userID,
+				},
+				{
+					ID:          uuid.New(),
+					OriginalURL: "http://google.com",
+					ShortKey:    "ABOBA",
+					UserID:      userID,
+				},
+			},
+			expectedError: ErrInternal,
+		},
+		"success base without last slash": {
+			baseURL: "http://localhost",
+			storageResponse: []*model.URL{
+				{
+					ID:          uuid.New(),
+					OriginalURL: "http://yandex.ru",
+					ShortKey:    "ABCDE",
+					UserID:      userID,
+				},
+				{
+					ID:          uuid.New(),
+					OriginalURL: "http://google.com",
+					ShortKey:    "ABOBA",
+					UserID:      userID,
+				},
+			},
+			expectedResponse: []*response.GetUserURL{
+				{
+					ShortURL:    "http://localhost/ABCDE",
+					OriginalURL: "http://yandex.ru",
+				},
+				{
+					ShortURL:    "http://localhost/ABOBA",
+					OriginalURL: "http://google.com",
+				},
+			},
+		},
+		"success base with last slash": {
+			baseURL: "http://localhost/",
+			storageResponse: []*model.URL{
+				{
+					ID:          uuid.New(),
+					OriginalURL: "http://yandex.ru",
+					ShortKey:    "ABCDE",
+					UserID:      userID,
+				},
+				{
+					ID:          uuid.New(),
+					OriginalURL: "http://google.com",
+					ShortKey:    "ABOBA",
+					UserID:      userID,
+				},
+			},
+			expectedResponse: []*response.GetUserURL{
+				{
+					ShortURL:    "http://localhost/ABCDE",
+					OriginalURL: "http://yandex.ru",
+				},
+				{
+					ShortURL:    "http://localhost/ABOBA",
+					OriginalURL: "http://google.com",
+				},
+			},
+		},
+	}
+
+	for tn, tt := range tests {
+		t.Run(tn, func(t *testing.T) {
+			t.Parallel()
+
+			ctx := context.Background()
+
+			urlStorage := mocks.NewURLStorage(t)
+			urlStorage.On("GetURLByUserID", ctx, userID).Once().
+				Return(tt.storageResponse, tt.storageError)
+
+			service := URL{
+				baseURL:        tt.baseURL,
+				shortKeyLength: 5,
+				storage:        urlStorage,
+			}
+
+			urls, err := service.GetUserURLs(ctx, userID)
+
+			assert.Equal(t, tt.expectedResponse, urls)
+			assert.Equal(t, tt.expectedError, err)
 		})
 	}
 }

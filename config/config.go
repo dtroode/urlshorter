@@ -15,6 +15,7 @@ type Config struct {
 	LogLevel        string `env:"LOG_LEVEL"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 	DatabaseDSN     string `env:"DATABASE_DSN"`
+	JWTSecretKey    string `env:"JWT_SECRET_KEY"`
 }
 
 func Initialize() (*Config, error) {
@@ -26,6 +27,7 @@ func Initialize() (*Config, error) {
 	flag.StringVar(&config.LogLevel, "l", "INFO", "log level")
 	flag.StringVar(&config.FileStoragePath, "f", fmt.Sprintf(os.TempDir(), "urls"), "path to file where to store urls")
 	flag.StringVar(&config.DatabaseDSN, "d", "", "string for connecting to postgres")
+	flag.StringVar(&config.JWTSecretKey, "j", "a-string-secret-at-least-256-bits-long", "key to sign jwt")
 	flag.Parse()
 
 	err := env.Parse(config)
