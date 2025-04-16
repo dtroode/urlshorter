@@ -12,12 +12,16 @@ packages:
         config:
         interfaces:
             # select the interfaces you want mocked
-            Service:
+            URLService:
+                config:
+            HealthService:
                 config:
     github.com/dtroode/urlshorter/internal/service:
         # place your package-specific config here
         config:
         interfaces:
             # select the interfaces you want mocked
-            Storage:
+            URLStorage:
+                config:
+            Pinger:
                 config:

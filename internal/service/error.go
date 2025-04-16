@@ -1,4 +1,4 @@
-package error
+package service
 
 import (
 	"errors"
@@ -6,3 +6,4 @@ import (
 
 var ErrNotFound = errors.New("not found")
 var ErrInternal = errors.New("internal error")
+var ErrConflict = errors.New("conflict")

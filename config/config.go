@@ -14,6 +14,7 @@ type Config struct {
 	ShortKeyLength  int    `env:"SHORT_URL_LENGTH"`
 	LogLevel        string `env:"LOG_LEVEL"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
+	DatabaseDSN     string `env:"DATABASE_DSN"`
 }
 
 func Initialize() (*Config, error) {
@@ -24,6 +25,7 @@ func Initialize() (*Config, error) {
 	flag.IntVar(&config.ShortKeyLength, "u", 8, "short key length")
 	flag.StringVar(&config.LogLevel, "l", "INFO", "log level")
 	flag.StringVar(&config.FileStoragePath, "f", fmt.Sprintf(os.TempDir(), "urls"), "path to file where to store urls")
+	flag.StringVar(&config.DatabaseDSN, "d", "", "string for connecting to postgres")
 	flag.Parse()
 
 	err := env.Parse(config)

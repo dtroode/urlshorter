@@ -1,26 +1,26 @@
-package storage
+package inmemory
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	internalerror "github.com/dtroode/urlshorter/internal/error"
 	"github.com/dtroode/urlshorter/internal/model"
+	"github.com/dtroode/urlshorter/internal/storage"
 )
 
-func TestInMemory_GetURL(t *testing.T) {
+func TestStorage_GetURL(t *testing.T) {
 	originalURL := "yandex.ru"
 
 	tests := map[string]struct {
 		urlmap        URLMap
 		id            string
-		expectedURL   *string
+		expectedURL   string
 		expectedError error
 	}{
 		"url not found": {
@@ -31,7 +31,7 @@ func TestInMemory_GetURL(t *testing.T) {
 				},
 			},
 			id:            "id2",
-			expectedError: internalerror.ErrNotFound,
+			expectedError: storage.ErrNotFound,
 		},
 		"url found": {
 			urlmap: URLMap{
@@ -41,26 +41,28 @@ func TestInMemory_GetURL(t *testing.T) {
 				},
 			},
 			id:          "id1",
-			expectedURL: &originalURL,
+			expectedURL: originalURL,
 		},
 	}
 
 	for tn, tt := range tests {
 		t.Run(tn, func(t *testing.T) {
-			s := InMemory{
+			s := Storage{
 				urlmap: tt.urlmap,
 			}
 
 			resp, err := s.GetURL(context.Background(), tt.id)
 
 			assert.ErrorIs(t, tt.expectedError, err)
-			assert.Equal(t, tt.expectedURL, resp)
+			if tt.expectedError == nil {
+				assert.Equal(t, tt.expectedURL, resp.OriginalURL)
+			}
 		})
 	}
 }
 
 type dummyFile struct {
-	*bufio.Writer
+	*bytes.Buffer
 }
 
 func (f *dummyFile) Close() error {
@@ -109,16 +111,17 @@ func TestURL_SetURL(t *testing.T) {
 
 	for tn, tt := range tests {
 		t.Run(tn, func(t *testing.T) {
-			s := InMemory{
+			s := Storage{
 				urlmap:  tt.urlmap,
-				file:    &dummyFile{Writer: bufio.NewWriter(buf)},
+				file:    &dummyFile{Buffer: buf},
 				encoder: json.NewEncoder(buf),
 			}
 
-			err := s.SetURL(context.Background(), tt.url)
+			url, err := s.SetURL(context.Background(), tt.url)
 			require.NoError(t, err)
 
 			assert.Equal(t, tt.url, (tt.urlmap)[tt.url.ShortKey])
+			assert.Equal(t, tt.url, url)
 
 			line, err := buf.ReadBytes('\n')
 			require.NoError(t, err)
@@ -128,6 +131,61 @@ func TestURL_SetURL(t *testing.T) {
 			require.NoError(t, err)
 
 			assert.Equal(t, tt.url, writtenData)
+		})
+	}
+}
+
+func TestURL_SetURLs(t *testing.T) {
+	buf := bytes.NewBuffer(nil)
+
+	tests := map[string]struct {
+		urlmap URLMap
+		urls   []*model.URL
+	}{
+		"success": {
+			urlmap: URLMap{
+				"id1": &model.URL{
+					ShortKey:    "abcd1",
+					OriginalURL: "yandex.ru",
+				},
+			},
+			urls: []*model.URL{
+				{
+					ShortKey:    "abcd2",
+					OriginalURL: "yandex.ru",
+				},
+			},
+		},
+	}
+
+	for tn, tt := range tests {
+		t.Run(tn, func(t *testing.T) {
+			s := Storage{
+				urlmap:  tt.urlmap,
+				file:    &dummyFile{Buffer: buf},
+				encoder: json.NewEncoder(buf),
+			}
+
+			savedURLs, err := s.SetURLs(context.Background(), tt.urls)
+			require.NoError(t, err)
+
+			assert.Equal(t, tt.urls, savedURLs)
+
+			for _, u := range tt.urls {
+				assert.Equal(t, u, (tt.urlmap)[u.ShortKey])
+
+				l := buf.Len()
+				fmt.Println(l)
+
+				line, err := buf.ReadBytes('\n')
+				require.NoError(t, err)
+
+				writtenData := &model.URL{}
+				err = json.Unmarshal(line, writtenData)
+				require.NoError(t, err)
+
+				assert.Equal(t, u, writtenData)
+			}
 		})
 	}
 }
