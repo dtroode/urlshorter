@@ -35,8 +35,6 @@ func (r *Router) RegisterAPIRoutes(s *service.URL, token middleware.Token, l *lo
 
 		r.With(compressor).Post("/", h.CreateShortURL)
 		r.Get("/{id}", h.GetShortURL)
-		r.With(compressor).Post("/", h.CreateShortURL)
-		r.Get("/{id}", h.GetShortURL)
 	})
 
 	r.Route("/api", func(r chi.Router) {
@@ -52,8 +50,8 @@ func (r *Router) RegisterAPIRoutes(s *service.URL, token middleware.Token, l *lo
 
 		r.Route("/user", func(r chi.Router) {
 			r.Get("/urls", h.GetUserURLs)
+			r.Delete("/urls", h.DeleteURLs)
 		})
-
 	})
 }
 

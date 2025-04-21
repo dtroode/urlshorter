@@ -22,6 +22,7 @@ type URLService interface {
 	GetUserURLs(ctx context.Context, userID uuid.UUID) ([]*response.GetUserURL, error)
 	CreateShortURL(ctx context.Context, dto *service.CreateShortURLDTO) (string, error)
 	CreateShortURLBatch(ctx context.Context, dto *service.CreateShortURLBatchDTO) ([]*response.CreateShortURLBatch, error)
+	DeleteURLs(ctx context.Context, dto *service.DeleteURLsDTO) error
 }
 
 type URL struct {
@@ -50,6 +51,11 @@ func (h *URL) GetShortURL(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, service.ErrNotFound) {
 			w.WriteHeader(http.StatusNotFound)
+
+			return
+		}
+		if errors.Is(err, service.ErrGone) {
+			w.WriteHeader(http.StatusGone)
 
 			return
 		}
@@ -223,4 +229,33 @@ func (h *URL) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
+}
+
+func (h *URL) DeleteURLs(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID, ok := auth.GetUserIDFromContext(ctx)
+	if !ok {
+		h.logger.Error("failed to get user id from context")
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
+
+	var shortKeys []string
+	if err := json.NewDecoder(r.Body).Decode(&shortKeys); err != nil {
+		h.logger.Info("failed to decode request")
+		w.WriteHeader(http.StatusBadRequest)
+
+		return
+	}
+
+	dto := service.NewDeleteURLsDTO(shortKeys, userID)
+	if err := h.service.DeleteURLs(ctx, dto); err != nil {
+		h.logger.Error("failed to delete urls", "error", err)
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
+
+	w.WriteHeader(http.StatusAccepted)
 }

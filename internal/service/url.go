@@ -16,9 +16,11 @@ import (
 
 type URLStorage interface {
 	GetURL(ctx context.Context, shortKey string) (*model.URL, error)
-	GetURLByUserID(ctx context.Context, userID uuid.UUID) ([]*model.URL, error)
+	GetURLs(ctx context.Context, shortKeys []string) ([]*model.URL, error)
+	GetURLsByUserID(ctx context.Context, userID uuid.UUID) ([]*model.URL, error)
 	SetURL(ctx context.Context, url *model.URL) (*model.URL, error)
 	SetURLs(ctx context.Context, urls []*model.URL) (savedURLs []*model.URL, err error)
+	DeleteURLs(ctx context.Context, ids []uuid.UUID) error
 }
 
 type URL struct {
@@ -59,6 +61,10 @@ func (s *URL) GetOriginalURL(ctx context.Context, id string) (string, error) {
 			return "", ErrNotFound
 		}
 		return "", fmt.Errorf("failed to get original URL: %w", err)
+	}
+
+	if !url.DeletedAt.IsZero() {
+		return "", ErrGone
 	}
 
 	return url.OriginalURL, nil
@@ -126,7 +132,7 @@ func (s *URL) CreateShortURLBatch(ctx context.Context, dto *CreateShortURLBatchD
 }
 
 func (s *URL) GetUserURLs(ctx context.Context, userID uuid.UUID) ([]*response.GetUserURL, error) {
-	urls, err := s.storage.GetURLByUserID(ctx, userID)
+	urls, err := s.storage.GetURLsByUserID(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get urls: %w", err)
 	}
@@ -151,4 +157,71 @@ func (s *URL) GetUserURLs(ctx context.Context, userID uuid.UUID) ([]*response.Ge
 	}
 
 	return resp, nil
+}
+
+func (s *URL) DeleteURLs(ctx context.Context, dto *DeleteURLsDTO) error {
+	doneCh := make(chan struct{})
+	// intentionally no defer close doneCh
+	// because we need to return nil regardless of deletion result
+	// but also want methods to be universal so support for done channel is left for them
+
+	go func() {
+		urls, err := s.storage.GetURLs(context.TODO(), dto.ShortKeys)
+		if err != nil {
+			return
+		}
+
+		inputCh := s.urlsGenerator(doneCh, urls)
+		userURLsCh := s.filterURLsByUser(doneCh, inputCh, dto.UserID)
+
+		ids := make([]uuid.UUID, 0)
+		for url := range userURLsCh {
+			ids = append(ids, url.ID)
+		}
+		err = s.storage.DeleteURLs(context.TODO(), ids)
+		if err != nil {
+			return
+		}
+	}()
+
+	return nil
+}
+
+func (s *URL) urlsGenerator(doneCh <-chan struct{}, input []*model.URL) <-chan *model.URL {
+	inputCh := make(chan *model.URL)
+
+	go func() {
+		defer close(inputCh)
+
+		for _, i := range input {
+			select {
+			case <-doneCh:
+				return
+			case inputCh <- i:
+			}
+		}
+	}()
+
+	return inputCh
+}
+
+func (s *URL) filterURLsByUser(doneCh <-chan struct{}, urlsCh <-chan *model.URL, userID uuid.UUID) <-chan *model.URL {
+	userURLs := make(chan *model.URL)
+
+	go func() {
+		defer close(userURLs)
+
+		for u := range urlsCh {
+			select {
+			case <-doneCh:
+				return
+			default:
+				if u.UserID == userID {
+					userURLs <- u
+				}
+			}
+		}
+	}()
+
+	return userURLs
 }

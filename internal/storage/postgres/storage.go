@@ -9,6 +9,7 @@ import (
 	"github.com/dtroode/urlshorter/internal/model"
 	"github.com/dtroode/urlshorter/internal/storage"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/pgtype"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -46,8 +47,8 @@ func (s *Storage) Ping(ctx context.Context) error {
 
 func (s *Storage) GetURL(ctx context.Context, shortKey string) (*model.URL, error) {
 	var url model.URL
-	query := `SELECT id, short_key, original_url, user_id FROM urls WHERE short_key = $1`
-	err := s.db.QueryRow(ctx, query, shortKey).Scan(&url.ID, &url.ShortKey, &url.OriginalURL, &url.UserID)
+	query := `SELECT id, short_key, original_url, user_id, deleted_at FROM urls WHERE short_key = $1`
+	err := s.db.QueryRow(ctx, query, shortKey).Scan(&url.ID, &url.ShortKey, &url.OriginalURL, &url.UserID, &url.DeletedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, storage.ErrNotFound
@@ -55,6 +56,32 @@ func (s *Storage) GetURL(ctx context.Context, shortKey string) (*model.URL, erro
 	}
 
 	return &url, nil
+}
+
+func (s *Storage) GetURLs(ctx context.Context, shortKeys []string) ([]*model.URL, error) {
+	query := `SELECT id, short_key, original_url, user_id FROM urls WHERE short_key = ANY ($1)`
+
+	keys := &pgtype.TextArray{}
+	keys.Set(shortKeys)
+	rows, err := s.db.Query(ctx, query, keys)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query rows: %w", err)
+	}
+	defer rows.Close()
+
+	urls := make([]*model.URL, 0)
+
+	for rows.Next() {
+		var url model.URL
+		err := rows.Scan(&url.ID, &url.ShortKey, &url.OriginalURL, &url.UserID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		urls = append(urls, &url)
+	}
+
+	return urls, nil
 }
 
 func (s *Storage) SetURL(ctx context.Context, url *model.URL) (*model.URL, error) {
@@ -119,7 +146,7 @@ func (s *Storage) SetURLs(ctx context.Context, urls []*model.URL) (savedURLs []*
 	return
 }
 
-func (s *Storage) GetURLByUserID(ctx context.Context, userID uuid.UUID) ([]*model.URL, error) {
+func (s *Storage) GetURLsByUserID(ctx context.Context, userID uuid.UUID) ([]*model.URL, error) {
 	query := `SELECT id, short_key, original_url, user_id FROM urls WHERE user_id = $1`
 	rows, err := s.db.Query(ctx, query, userID)
 	if err != nil {
@@ -140,4 +167,14 @@ func (s *Storage) GetURLByUserID(ctx context.Context, userID uuid.UUID) ([]*mode
 	}
 
 	return urls, nil
+}
+
+func (s *Storage) DeleteURLs(ctx context.Context, ids []uuid.UUID) error {
+	query := `UPDATE urls SET deleted_at = now() WHERE id = ANY($1)`
+	_, err := s.db.Exec(ctx, query, ids)
+	if err != nil {
+		return fmt.Errorf("failed to exec query: %w", err)
+	}
+
+	return nil
 }

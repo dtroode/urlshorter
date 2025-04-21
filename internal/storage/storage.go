@@ -10,8 +10,10 @@ import (
 type Storage interface {
 	Ping(ctx context.Context) error
 	GetURL(ctx context.Context, shortKey string) (*model.URL, error)
+	GetURLs(ctx context.Context, shortKeys []string) ([]*model.URL, error)
 	SetURL(ctx context.Context, url *model.URL) (*model.URL, error)
 	SetURLs(ctx context.Context, urls []*model.URL) (savedURLs []*model.URL, err error)
-	GetURLByUserID(ctx context.Context, userID uuid.UUID) ([]*model.URL, error)
+	GetURLsByUserID(ctx context.Context, userID uuid.UUID) ([]*model.URL, error)
+	DeleteURLs(ctx context.Context, ids []uuid.UUID) error
 	Close() error
 }

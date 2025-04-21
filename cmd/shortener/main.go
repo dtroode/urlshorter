@@ -31,6 +31,7 @@ func main() {
 	var urlStorage storage.Storage
 	dsn := config.DatabaseDSN
 	if dsn != "" {
+		// TODO: move constant to config
 		urlStorage, err = postgres.NewStorage(dsn)
 		if err != nil {
 			logger.Error("failed to create database storage", "error", err)

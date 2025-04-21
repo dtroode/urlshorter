@@ -238,7 +238,7 @@ func TestStorage_SetURLs(t *testing.T) {
 	})
 }
 
-func TestStorage_GetURLByUserID(t *testing.T) {
+func TestStorage_GetURLsByUserID(t *testing.T) {
 	if SKIP {
 		t.Skip("skip so that ci does not fail")
 	}
@@ -264,7 +264,7 @@ func TestStorage_GetURLByUserID(t *testing.T) {
 			s, err := postgres.NewStorage(DSN)
 			require.NoError(t, err)
 
-			gotURLs, err := s.GetURLByUserID(ctx, userID)
+			gotURLs, err := s.GetURLsByUserID(ctx, userID)
 			require.NoError(t, err)
 
 			for i, u := range urls {
@@ -282,7 +282,7 @@ func TestStorage_GetURLByUserID(t *testing.T) {
 		s, err := postgres.NewStorage(DSN)
 		require.NoError(t, err)
 
-		gotURLs, err := s.GetURLByUserID(ctx, userID)
+		gotURLs, err := s.GetURLsByUserID(ctx, userID)
 		require.NoError(t, err)
 		require.Empty(t, gotURLs)
 	})

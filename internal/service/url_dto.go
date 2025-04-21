@@ -28,3 +28,15 @@ func NewCreateShortURLBatchDTO(urls []*request.CreateShortURLBatch, userID uuid.
 		UserID: userID,
 	}
 }
+
+type DeleteURLsDTO struct {
+	UserID    uuid.UUID
+	ShortKeys []string
+}
+
+func NewDeleteURLsDTO(shortKeys []string, userID uuid.UUID) *DeleteURLsDTO {
+	return &DeleteURLsDTO{
+		UserID:    userID,
+		ShortKeys: shortKeys,
+	}
+}

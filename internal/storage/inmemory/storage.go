@@ -99,6 +99,23 @@ func (s *Storage) GetURL(_ context.Context, shortKey string) (*model.URL, error)
 	return val, nil
 }
 
+func (s *Storage) GetURLs(_ context.Context, shortKeys []string) ([]*model.URL, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	urls := make([]*model.URL, 0)
+
+	for _, shortKey := range shortKeys {
+		for _, u := range s.urlmap {
+			if u.ShortKey == shortKey {
+				urls = append(urls, u)
+			}
+		}
+	}
+
+	return urls, nil
+}
+
 func (s *Storage) saveToFile(_ context.Context, url *model.URL) error {
 	return s.encoder.Encode(url)
 }
@@ -147,7 +164,7 @@ func (s *Storage) SetURLs(ctx context.Context, urls []*model.URL) ([]*model.URL,
 	return urls, nil
 }
 
-func (s *Storage) GetURLByUserID(ctx context.Context, userID uuid.UUID) ([]*model.URL, error) {
+func (s *Storage) GetURLsByUserID(ctx context.Context, userID uuid.UUID) ([]*model.URL, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -160,4 +177,8 @@ func (s *Storage) GetURLByUserID(ctx context.Context, userID uuid.UUID) ([]*mode
 	}
 
 	return urls, nil
+}
+
+func (s *Storage) DeleteURLs(_ context.Context, _ []uuid.UUID) error {
+	return nil
 }

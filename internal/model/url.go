@@ -1,6 +1,8 @@
 package model
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 )
 
@@ -9,6 +11,7 @@ type URL struct {
 	ShortKey    string    `json:"short_key"`
 	OriginalURL string    `json:"original_url"`
 	UserID      uuid.UUID `json:"user_id"`
+	DeletedAt   time.Time `json:"deleted_at"`
 }
 
 func NewURL(shortKey, originalURL string, userID uuid.UUID) *URL {
