@@ -45,11 +45,12 @@ func TestAuthenticate_Handle(t *testing.T) {
 		m := NewAuthenticate(tokenMock, dummyLogger)
 		m.Handle(h).ServeHTTP(w, r)
 
-		defer w.Result().Body.Close()
+		res := w.Result()
+		defer res.Body.Close()
 
-		assert.Equal(t, http.StatusOK, w.Result().StatusCode)
-		assert.Equal(t, "token", w.Result().Cookies()[0].Name)
-		assert.Equal(t, tokenString, w.Result().Cookies()[0].Value)
+		assert.Equal(t, http.StatusOK, res.StatusCode)
+		assert.Equal(t, "token", res.Cookies()[0].Name)
+		assert.Equal(t, tokenString, res.Cookies()[0].Value)
 	})
 
 	t.Run("failed to create token", func(t *testing.T) {
@@ -66,10 +67,11 @@ func TestAuthenticate_Handle(t *testing.T) {
 		m := NewAuthenticate(tokenMock, dummyLogger)
 		m.Handle(h).ServeHTTP(w, r)
 
-		defer w.Result().Body.Close()
+		res := w.Result()
+		defer res.Body.Close()
 
-		assert.Equal(t, http.StatusInternalServerError, w.Result().StatusCode)
-		assert.Len(t, w.Result().Cookies(), 0)
+		assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
+		assert.Len(t, res.Cookies(), 0)
 	})
 
 	t.Run("failed to get user id", func(t *testing.T) {
@@ -96,11 +98,12 @@ func TestAuthenticate_Handle(t *testing.T) {
 		m := NewAuthenticate(tokenMock, dummyLogger)
 		m.Handle(h).ServeHTTP(w, r)
 
-		defer w.Result().Body.Close()
+		res := w.Result()
+		defer res.Body.Close()
 
-		assert.Equal(t, http.StatusOK, w.Result().StatusCode)
-		assert.Equal(t, "token", w.Result().Cookies()[0].Name)
-		assert.Equal(t, tokenString, w.Result().Cookies()[0].Value)
+		assert.Equal(t, http.StatusOK, res.StatusCode)
+		assert.Equal(t, "token", res.Cookies()[0].Name)
+		assert.Equal(t, tokenString, res.Cookies()[0].Value)
 	})
 
 	t.Run("user id is nil", func(t *testing.T) {
@@ -125,10 +128,11 @@ func TestAuthenticate_Handle(t *testing.T) {
 		m := NewAuthenticate(tokenMock, dummyLogger)
 		m.Handle(h).ServeHTTP(w, r)
 
-		defer w.Result().Body.Close()
+		res := w.Result()
+		defer res.Body.Close()
 
-		assert.Equal(t, http.StatusUnauthorized, w.Result().StatusCode)
-		assert.Len(t, w.Result().Cookies(), 0)
+		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
+		assert.Len(t, res.Cookies(), 0)
 	})
 
 	t.Run("user id is valid", func(t *testing.T) {
@@ -153,8 +157,9 @@ func TestAuthenticate_Handle(t *testing.T) {
 		m := NewAuthenticate(tokenMock, dummyLogger)
 		m.Handle(h).ServeHTTP(w, r)
 
-		defer w.Result().Body.Close()
+		res := w.Result()
+		defer res.Body.Close()
 
-		assert.Equal(t, http.StatusOK, w.Result().StatusCode)
+		assert.Equal(t, http.StatusOK, res.StatusCode)
 	})
 }
