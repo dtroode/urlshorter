@@ -83,6 +83,7 @@ func TestJWT_Create(t *testing.T) {
 
 			return []byte(j.secretKey), nil
 		})
+		require.NoError(t, err)
 
 		assert.NotNil(t, claims.RegisteredClaims.IssuedAt)
 		assert.Equal(t, userID, claims.UserID)
