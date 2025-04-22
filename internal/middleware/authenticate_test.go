@@ -45,6 +45,8 @@ func TestAuthenticate_Handle(t *testing.T) {
 		m := NewAuthenticate(tokenMock, dummyLogger)
 		m.Handle(h).ServeHTTP(w, r)
 
+		defer w.Result().Body.Close()
+
 		assert.Equal(t, http.StatusOK, w.Result().StatusCode)
 		assert.Equal(t, "token", w.Result().Cookies()[0].Name)
 		assert.Equal(t, tokenString, w.Result().Cookies()[0].Value)
@@ -63,6 +65,8 @@ func TestAuthenticate_Handle(t *testing.T) {
 
 		m := NewAuthenticate(tokenMock, dummyLogger)
 		m.Handle(h).ServeHTTP(w, r)
+
+		defer w.Result().Body.Close()
 
 		assert.Equal(t, http.StatusInternalServerError, w.Result().StatusCode)
 		assert.Len(t, w.Result().Cookies(), 0)
@@ -92,6 +96,8 @@ func TestAuthenticate_Handle(t *testing.T) {
 		m := NewAuthenticate(tokenMock, dummyLogger)
 		m.Handle(h).ServeHTTP(w, r)
 
+		defer w.Result().Body.Close()
+
 		assert.Equal(t, http.StatusOK, w.Result().StatusCode)
 		assert.Equal(t, "token", w.Result().Cookies()[0].Name)
 		assert.Equal(t, tokenString, w.Result().Cookies()[0].Value)
@@ -119,6 +125,8 @@ func TestAuthenticate_Handle(t *testing.T) {
 		m := NewAuthenticate(tokenMock, dummyLogger)
 		m.Handle(h).ServeHTTP(w, r)
 
+		defer w.Result().Body.Close()
+
 		assert.Equal(t, http.StatusUnauthorized, w.Result().StatusCode)
 		assert.Len(t, w.Result().Cookies(), 0)
 	})
@@ -144,6 +152,8 @@ func TestAuthenticate_Handle(t *testing.T) {
 
 		m := NewAuthenticate(tokenMock, dummyLogger)
 		m.Handle(h).ServeHTTP(w, r)
+
+		defer w.Result().Body.Close()
 
 		assert.Equal(t, http.StatusOK, w.Result().StatusCode)
 	})
