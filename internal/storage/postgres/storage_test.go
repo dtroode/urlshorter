@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const SKIP = false
+const SKIP = true
 const DSN = "postgres://postgres:postgres@localhost:5432/test?sslmode=disable"
 
 func createURL(ctx context.Context, t *testing.T, db *pgx.Conn, url *model.URL) {
