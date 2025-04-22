@@ -54,8 +54,8 @@ func (s *URL) generateString() string {
 	return sb.String()
 }
 
-func (s *URL) GetOriginalURL(ctx context.Context, id string) (string, error) {
-	url, err := s.storage.GetURL(ctx, id)
+func (s *URL) GetOriginalURL(ctx context.Context, shortKey string) (string, error) {
+	url, err := s.storage.GetURL(ctx, shortKey)
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
 			return "", ErrNotFound
@@ -63,7 +63,7 @@ func (s *URL) GetOriginalURL(ctx context.Context, id string) (string, error) {
 		return "", fmt.Errorf("failed to get original URL: %w", err)
 	}
 
-	if !url.DeletedAt.IsZero() {
+	if url.DeletedAt != nil {
 		return "", ErrGone
 	}
 

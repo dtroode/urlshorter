@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -22,6 +24,7 @@ import (
 func TestURL_GetOriginalURL(t *testing.T) {
 	originalURL := "yandex.ru"
 	shortKey := "C69F32242B"
+	deletedAt := time.Now()
 
 	tests := map[string]struct {
 		shortKey         string
@@ -35,19 +38,30 @@ func TestURL_GetOriginalURL(t *testing.T) {
 			storageError:  errors.New("storage error"),
 			expectedError: fmt.Errorf("failed to get original URL: %w", errors.New("storage error")),
 		},
-		"success": {
-			shortKey:         shortKey,
-			expectedResponse: originalURL,
-			storageResponse: &model.URL{
-				ID:          uuid.New(),
-				ShortKey:    shortKey,
-				OriginalURL: originalURL,
-			},
-		},
 		"does not exist": {
 			shortKey:      "does not exist",
 			storageError:  storage.ErrNotFound,
 			expectedError: ErrNotFound,
+		},
+		"deleted": {
+			shortKey: shortKey,
+			storageResponse: &model.URL{
+				ID:          uuid.New(),
+				ShortKey:    shortKey,
+				OriginalURL: originalURL,
+				DeletedAt:   &deletedAt,
+			},
+			expectedError: ErrGone,
+		},
+		"success": {
+			shortKey: shortKey,
+			storageResponse: &model.URL{
+				ID:          uuid.New(),
+				ShortKey:    shortKey,
+				OriginalURL: originalURL,
+				DeletedAt:   nil,
+			},
+			expectedResponse: originalURL,
 		},
 	}
 
@@ -453,7 +467,7 @@ func TestURL_GetUserURLs(t *testing.T) {
 			ctx := context.Background()
 
 			urlStorage := mocks.NewURLStorage(t)
-			urlStorage.On("GetURLByUserID", ctx, userID).Once().
+			urlStorage.On("GetURLsByUserID", ctx, userID).Once().
 				Return(tt.storageResponse, tt.storageError)
 
 			service := URL{
@@ -468,4 +482,71 @@ func TestURL_GetUserURLs(t *testing.T) {
 			assert.Equal(t, tt.expectedError, err)
 		})
 	}
+}
+
+func TestURL_DeleteURLs(t *testing.T) {
+	userID := uuid.New()
+	shortKeys := []string{"ggl", "ydx"}
+	urls := []*model.URL{
+		{
+			ID:          uuid.New(),
+			ShortKey:    "ggl",
+			OriginalURL: "https://google.com",
+			UserID:      userID,
+		},
+		{
+			ID:          uuid.New(),
+			ShortKey:    "ydx",
+			OriginalURL: "https://ya.ru",
+			UserID:      uuid.New(),
+		},
+	}
+	dto := NewDeleteURLsDTO(shortKeys, userID)
+
+	t.Run("get urls error", func(t *testing.T) {
+		t.Parallel()
+
+		urlStorage := mocks.NewURLStorage(t)
+
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+
+		urlStorage.On("GetURLs", context.TODO(), shortKeys).Once().
+			Run(func(args mock.Arguments) {
+				defer wg.Done()
+			}).
+			Return(nil, errors.New("service error"))
+
+		service := NewURL("base", 3, urlStorage)
+		service.DeleteURLs(context.Background(), dto)
+
+		wg.Wait()
+		urlStorage.AssertNotCalled(t, "DeleteURLs")
+		urlStorage.AssertExpectations(t)
+	})
+
+	t.Run("get urls success", func(t *testing.T) {
+		t.Parallel()
+
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+
+		urlStorage := mocks.NewURLStorage(t)
+		urlStorage.On("GetURLs", context.TODO(), shortKeys).Once().
+			Run(func(args mock.Arguments) {
+				defer wg.Done()
+			}).
+			Return(urls, nil)
+		urlStorage.On("DeleteURLs", context.TODO(), []uuid.UUID{urls[0].ID}).Once().
+			Run(func(args mock.Arguments) {
+				defer wg.Done()
+			}).
+			Return(nil)
+
+		service := NewURL("base", 3, urlStorage)
+		service.DeleteURLs(context.Background(), dto)
+
+		wg.Wait()
+		urlStorage.AssertExpectations(t)
+	})
 }

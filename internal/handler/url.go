@@ -18,7 +18,7 @@ import (
 )
 
 type URLService interface {
-	GetOriginalURL(ctx context.Context, id string) (string, error)
+	GetOriginalURL(ctx context.Context, shortKey string) (string, error)
 	GetUserURLs(ctx context.Context, userID uuid.UUID) ([]*response.GetUserURL, error)
 	CreateShortURL(ctx context.Context, dto *service.CreateShortURLDTO) (string, error)
 	CreateShortURLBatch(ctx context.Context, dto *service.CreateShortURLBatchDTO) ([]*response.CreateShortURLBatch, error)
@@ -37,7 +37,7 @@ func NewURL(s URLService, l *logger.Logger) *URL {
 	}
 }
 
-func (h *URL) GetShortURL(w http.ResponseWriter, r *http.Request) {
+func (h *URL) GetOriginalURL(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	id := chi.URLParam(r, "id")

@@ -116,6 +116,21 @@ func (s *Storage) GetURLs(_ context.Context, shortKeys []string) ([]*model.URL, 
 	return urls, nil
 }
 
+func (s *Storage) GetURLsByUserID(ctx context.Context, userID uuid.UUID) ([]*model.URL, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	urls := make([]*model.URL, 0)
+
+	for _, url := range s.urlmap {
+		if url.UserID == userID {
+			urls = append(urls, url)
+		}
+	}
+
+	return urls, nil
+}
+
 func (s *Storage) saveToFile(_ context.Context, url *model.URL) error {
 	return s.encoder.Encode(url)
 }
@@ -159,21 +174,6 @@ func (s *Storage) SetURLs(ctx context.Context, urls []*model.URL) ([]*model.URL,
 
 	if err := s.saveToFileBatch(ctx, builder.String()); err != nil {
 		return nil, fmt.Errorf("failed to encode urls to file: %w", err)
-	}
-
-	return urls, nil
-}
-
-func (s *Storage) GetURLsByUserID(ctx context.Context, userID uuid.UUID) ([]*model.URL, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	urls := make([]*model.URL, 0)
-
-	for _, url := range s.urlmap {
-		if url.UserID == userID {
-			urls = append(urls, url)
-		}
 	}
 
 	return urls, nil

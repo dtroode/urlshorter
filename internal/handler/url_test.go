@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -30,7 +31,7 @@ func (m *failReader) Read(p []byte) (n int, err error) {
 	return 0, errors.New("failed to read")
 }
 
-func TestHandler_GetShortURL(t *testing.T) {
+func TestHandler_GetOriginalURL(t *testing.T) {
 	dummyLogger := &logger.Logger{
 		Logger: slog.New(slog.NewJSONHandler(io.Discard, nil)),
 	}
@@ -62,6 +63,12 @@ func TestHandler_GetShortURL(t *testing.T) {
 			wantError:      true,
 			wantStatusCode: http.StatusNotFound,
 		},
+		"deleted": {
+			id:             "d8398Sj3",
+			serviceError:   service.ErrGone,
+			wantError:      true,
+			wantStatusCode: http.StatusGone,
+		},
 		"success": {
 			id:              "d8398Sj3",
 			serviceResponse: responseURL,
@@ -92,7 +99,7 @@ func TestHandler_GetShortURL(t *testing.T) {
 
 			h := NewURL(service, dummyLogger)
 
-			h.GetShortURL(w, r)
+			h.GetOriginalURL(w, r)
 
 			res := w.Result()
 			defer res.Body.Close()
@@ -474,6 +481,74 @@ func TestHandler_GetUserURLs(t *testing.T) {
 
 				assert.JSONEq(t, tt.wantResponse, string(resBody))
 			}
+		})
+	}
+}
+
+func TestHandler_DeleteURLs(t *testing.T) {
+	dummyLogger := &logger.Logger{
+		Logger: slog.New(slog.NewJSONHandler(io.Discard, nil)),
+	}
+
+	shortKeys := []string{"ggl", "ydx"}
+	shortKeysBytes, err := json.Marshal(shortKeys)
+	require.NoError(t, err)
+	userID := uuid.New()
+
+	tests := map[string]struct {
+		ctx            context.Context
+		body           string
+		serviceError   error
+		wantStatusCode int
+	}{
+		"failed to get user id from context": {
+			ctx:            context.Background(),
+			wantStatusCode: http.StatusInternalServerError,
+		},
+		"failed to decode body": {
+			ctx:            auth.SetUserIDToContext(context.Background(), userID),
+			body:           "fail",
+			wantStatusCode: http.StatusBadRequest,
+		},
+		"service error": {
+			ctx:            auth.SetUserIDToContext(context.Background(), userID),
+			body:           string(shortKeysBytes),
+			serviceError:   errors.New("service error"),
+			wantStatusCode: http.StatusInternalServerError,
+		},
+		"success": {
+			ctx:            auth.SetUserIDToContext(context.Background(), userID),
+			body:           string(shortKeysBytes),
+			wantStatusCode: http.StatusAccepted,
+		},
+	}
+
+	for tn, tt := range tests {
+		t.Run(tn, func(t *testing.T) {
+			t.Parallel()
+
+			r := httptest.NewRequest(http.MethodDelete, "/", strings.NewReader(tt.body))
+			r = r.WithContext(tt.ctx)
+
+			w := httptest.NewRecorder()
+
+			serviceMock := mocks.NewURLService(t)
+			dto := service.NewDeleteURLsDTO(shortKeys, userID)
+			serviceMock.On("DeleteURLs", tt.ctx, dto).Maybe().
+				Return(tt.serviceError)
+
+			h := NewURL(serviceMock, dummyLogger)
+
+			h.DeleteURLs(w, r)
+
+			res := w.Result()
+			defer res.Body.Close()
+
+			assert.Equal(t, tt.wantStatusCode, res.StatusCode)
+
+			resBody, err := io.ReadAll(res.Body)
+			require.NoError(t, err)
+			assert.Empty(t, resBody)
 		})
 	}
 }

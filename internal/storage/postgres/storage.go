@@ -59,7 +59,7 @@ func (s *Storage) GetURL(ctx context.Context, shortKey string) (*model.URL, erro
 }
 
 func (s *Storage) GetURLs(ctx context.Context, shortKeys []string) ([]*model.URL, error) {
-	query := `SELECT id, short_key, original_url, user_id FROM urls WHERE short_key = ANY ($1)`
+	query := `SELECT id, short_key, original_url, user_id, deleted_at FROM urls WHERE short_key = ANY ($1)`
 
 	keys := &pgtype.TextArray{}
 	keys.Set(shortKeys)
@@ -73,7 +73,30 @@ func (s *Storage) GetURLs(ctx context.Context, shortKeys []string) ([]*model.URL
 
 	for rows.Next() {
 		var url model.URL
-		err := rows.Scan(&url.ID, &url.ShortKey, &url.OriginalURL, &url.UserID)
+		err := rows.Scan(&url.ID, &url.ShortKey, &url.OriginalURL, &url.UserID, &url.DeletedAt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		urls = append(urls, &url)
+	}
+
+	return urls, nil
+}
+
+func (s *Storage) GetURLsByUserID(ctx context.Context, userID uuid.UUID) ([]*model.URL, error) {
+	query := `SELECT id, short_key, original_url, user_id, deleted_at FROM urls WHERE user_id = $1`
+	rows, err := s.db.Query(ctx, query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query rows: %w", err)
+	}
+	defer rows.Close()
+
+	urls := make([]*model.URL, 0)
+
+	for rows.Next() {
+		var url model.URL
+		err := rows.Scan(&url.ID, &url.ShortKey, &url.OriginalURL, &url.UserID, &url.DeletedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
@@ -144,29 +167,6 @@ func (s *Storage) SetURLs(ctx context.Context, urls []*model.URL) (savedURLs []*
 	}
 
 	return
-}
-
-func (s *Storage) GetURLsByUserID(ctx context.Context, userID uuid.UUID) ([]*model.URL, error) {
-	query := `SELECT id, short_key, original_url, user_id FROM urls WHERE user_id = $1`
-	rows, err := s.db.Query(ctx, query, userID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query rows: %w", err)
-	}
-	defer rows.Close()
-
-	urls := make([]*model.URL, 0)
-
-	for rows.Next() {
-		var url model.URL
-		err := rows.Scan(&url.ID, &url.ShortKey, &url.OriginalURL, &url.UserID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan row: %w", err)
-		}
-
-		urls = append(urls, &url)
-	}
-
-	return urls, nil
 }
 
 func (s *Storage) DeleteURLs(ctx context.Context, ids []uuid.UUID) error {
