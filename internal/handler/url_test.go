@@ -18,6 +18,7 @@ import (
 	"github.com/dtroode/urlshorter/internal/request"
 	"github.com/dtroode/urlshorter/internal/response"
 	"github.com/dtroode/urlshorter/internal/service"
+	"github.com/dtroode/urlshorter/internal/service/dto"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -184,7 +185,7 @@ func TestHandler_CreateShortURL(t *testing.T) {
 			w := httptest.NewRecorder()
 
 			s := mocks.NewURLService(t)
-			dto := service.NewCreateShortURLDTO(url, userID)
+			dto := dto.NewCreateShortURL(url, userID)
 			s.On("CreateShortURL", r.Context(), dto).Maybe().Return(tt.serviceResponse, tt.serviceError)
 
 			h := NewURL(s, dummyLogger)
@@ -272,7 +273,7 @@ func TestHandler_CreateShortURLJSON(t *testing.T) {
 			w := httptest.NewRecorder()
 
 			s := mocks.NewURLService(t)
-			dto := service.NewCreateShortURLDTO(url, userID)
+			dto := dto.NewCreateShortURL(url, userID)
 			s.On("CreateShortURL", r.Context(), dto).Maybe().Return(tt.serviceResponse, tt.serviceError)
 
 			h := NewURL(s, dummyLogger)
@@ -385,7 +386,7 @@ func TestHandler_CreateShortURLBatch(t *testing.T) {
 			w := httptest.NewRecorder()
 
 			s := mocks.NewURLService(t)
-			dto := service.NewCreateShortURLBatchDTO(tt.serviceRequest, userID)
+			dto := dto.NewCreateShortURLBatch(tt.serviceRequest, userID)
 			s.On("CreateShortURLBatch", r.Context(), dto).Maybe().Return(tt.serviceResponse, tt.serviceError)
 
 			h := NewURL(s, dummyLogger)
@@ -533,7 +534,7 @@ func TestHandler_DeleteURLs(t *testing.T) {
 			w := httptest.NewRecorder()
 
 			serviceMock := mocks.NewURLService(t)
-			dto := service.NewDeleteURLsDTO(shortKeys, userID)
+			dto := dto.NewDeleteURLs(shortKeys, userID)
 			serviceMock.On("DeleteURLs", tt.ctx, dto).Maybe().
 				Return(tt.serviceError)
 

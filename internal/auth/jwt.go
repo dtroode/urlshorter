@@ -46,10 +46,11 @@ func (j *JWT) GetUserID(_ context.Context, tokenString string) (uuid.UUID, error
 	return claims.UserID, nil
 }
 
-func (j *JWT) Create(_ context.Context, userID uuid.UUID) (string, error) {
+func (j *JWT) CreateToken(_ context.Context, userID uuid.UUID) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			IssuedAt: jwt.NewNumericDate(time.Now()),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 		},
 		UserID: userID,
 	})

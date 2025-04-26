@@ -39,7 +39,7 @@ func TestAuthenticate_Handle(t *testing.T) {
 		ctx := r.Context()
 
 		tokenMock := mocks.NewToken(t)
-		tokenMock.On("Create", ctx, mock.AnythingOfType("uuid.UUID")).Once().
+		tokenMock.On("CreateToken", ctx, mock.AnythingOfType("uuid.UUID")).Once().
 			Return(tokenString, nil)
 
 		m := NewAuthenticate(tokenMock, dummyLogger)
@@ -61,7 +61,7 @@ func TestAuthenticate_Handle(t *testing.T) {
 		ctx := r.Context()
 
 		tokenMock := mocks.NewToken(t)
-		tokenMock.On("Create", ctx, mock.AnythingOfType("uuid.UUID")).Once().
+		tokenMock.On("CreateToken", ctx, mock.AnythingOfType("uuid.UUID")).Once().
 			Return("", errors.New("token error"))
 
 		m := NewAuthenticate(tokenMock, dummyLogger)
@@ -92,7 +92,7 @@ func TestAuthenticate_Handle(t *testing.T) {
 		tokenMock := mocks.NewToken(t)
 		tokenMock.On("GetUserID", ctx, "existing-token").Once().
 			Return(uuid.Nil, errors.New("token error"))
-		tokenMock.On("Create", ctx, mock.AnythingOfType("uuid.UUID")).Once().
+		tokenMock.On("CreateToken", ctx, mock.AnythingOfType("uuid.UUID")).Once().
 			Return(tokenString, nil)
 
 		m := NewAuthenticate(tokenMock, dummyLogger)

@@ -17,6 +17,7 @@ import (
 	"github.com/dtroode/urlshorter/internal/model"
 	"github.com/dtroode/urlshorter/internal/request"
 	"github.com/dtroode/urlshorter/internal/response"
+	"github.com/dtroode/urlshorter/internal/service/dto"
 	"github.com/dtroode/urlshorter/internal/service/mocks"
 	"github.com/dtroode/urlshorter/internal/storage"
 )
@@ -169,7 +170,7 @@ func TestURL_CreateShortURL(t *testing.T) {
 				storage:        urlStorage,
 			}
 
-			dto := NewCreateShortURLDTO(tt.originalURL, userID)
+			dto := dto.NewCreateShortURL(tt.originalURL, userID)
 			shortURL, err := service.CreateShortURL(ctx, dto)
 			assert.Equal(t, tt.expectedError, err)
 
@@ -333,7 +334,7 @@ func TestURL_CreateShortURLBatch(t *testing.T) {
 				storage:        urlStorage,
 			}
 
-			dto := NewCreateShortURLBatchDTO(tt.originalURLs, userID)
+			dto := dto.NewCreateShortURLBatch(tt.originalURLs, userID)
 			shortURLs, err := service.CreateShortURLBatch(ctx, dto)
 
 			if tt.expectedError != nil {
@@ -501,7 +502,7 @@ func TestURL_DeleteURLs(t *testing.T) {
 			UserID:      uuid.New(),
 		},
 	}
-	dto := NewDeleteURLsDTO(shortKeys, userID)
+	dto := dto.NewDeleteURLs(shortKeys, userID)
 
 	t.Run("get urls error", func(t *testing.T) {
 		t.Parallel()

@@ -15,14 +15,15 @@ import (
 	"github.com/dtroode/urlshorter/internal/request"
 	"github.com/dtroode/urlshorter/internal/response"
 	"github.com/dtroode/urlshorter/internal/service"
+	"github.com/dtroode/urlshorter/internal/service/dto"
 )
 
 type URLService interface {
 	GetOriginalURL(ctx context.Context, shortKey string) (string, error)
 	GetUserURLs(ctx context.Context, userID uuid.UUID) ([]*response.GetUserURL, error)
-	CreateShortURL(ctx context.Context, dto *service.CreateShortURLDTO) (string, error)
-	CreateShortURLBatch(ctx context.Context, dto *service.CreateShortURLBatchDTO) ([]*response.CreateShortURLBatch, error)
-	DeleteURLs(ctx context.Context, dto *service.DeleteURLsDTO) error
+	CreateShortURL(ctx context.Context, dto *dto.CreateShortURL) (string, error)
+	CreateShortURLBatch(ctx context.Context, dto *dto.CreateShortURLBatch) ([]*response.CreateShortURLBatch, error)
+	DeleteURLs(ctx context.Context, dto *dto.DeleteURLs) error
 }
 
 type URL struct {
@@ -87,7 +88,7 @@ func (h *URL) CreateShortURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	url := string(body)
-	dto := service.NewCreateShortURLDTO(url, userID)
+	dto := dto.NewCreateShortURL(url, userID)
 	shortURL, err := h.service.CreateShortURL(ctx, dto)
 	if err != nil && !errors.Is(err, service.ErrConflict) {
 		h.logger.Error("service error", "error", err)
@@ -125,7 +126,7 @@ func (h *URL) CreateShortURLJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dto := service.NewCreateShortURLDTO(request.URL, userID)
+	dto := dto.NewCreateShortURL(request.URL, userID)
 	shortURL, err := h.service.CreateShortURL(ctx, dto)
 	if err != nil && !errors.Is(err, service.ErrConflict) {
 		h.logger.Error("service error", "error", err)
@@ -176,7 +177,7 @@ func (h *URL) CreateShortURLBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dto := service.NewCreateShortURLBatchDTO(request, userID)
+	dto := dto.NewCreateShortURLBatch(request, userID)
 	shortURLs, err := h.service.CreateShortURLBatch(ctx, dto)
 	if err != nil {
 		h.logger.Error("service error", "error", err)
@@ -249,7 +250,7 @@ func (h *URL) DeleteURLs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dto := service.NewDeleteURLsDTO(shortKeys, userID)
+	dto := dto.NewDeleteURLs(shortKeys, userID)
 	if err := h.service.DeleteURLs(ctx, dto); err != nil {
 		h.logger.Error("failed to delete urls", "error", err)
 		w.WriteHeader(http.StatusInternalServerError)

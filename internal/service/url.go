@@ -10,6 +10,7 @@ import (
 
 	"github.com/dtroode/urlshorter/internal/model"
 	"github.com/dtroode/urlshorter/internal/response"
+	"github.com/dtroode/urlshorter/internal/service/dto"
 	"github.com/dtroode/urlshorter/internal/storage"
 	"github.com/google/uuid"
 )
@@ -70,7 +71,7 @@ func (s *URL) GetOriginalURL(ctx context.Context, shortKey string) (string, erro
 	return url.OriginalURL, nil
 }
 
-func (s *URL) CreateShortURL(ctx context.Context, dto *CreateShortURLDTO) (string, error) {
+func (s *URL) CreateShortURL(ctx context.Context, dto *dto.CreateShortURL) (string, error) {
 	shortKey := s.generateString()
 	var responseError error
 
@@ -93,7 +94,7 @@ func (s *URL) CreateShortURL(ctx context.Context, dto *CreateShortURLDTO) (strin
 	return shortURL, responseError
 }
 
-func (s *URL) CreateShortURLBatch(ctx context.Context, dto *CreateShortURLBatchDTO) ([]*response.CreateShortURLBatch, error) {
+func (s *URL) CreateShortURLBatch(ctx context.Context, dto *dto.CreateShortURLBatch) ([]*response.CreateShortURLBatch, error) {
 	resp := make([]*response.CreateShortURLBatch, 0)
 
 	urlModels := make([]*model.URL, 0)
@@ -159,13 +160,11 @@ func (s *URL) GetUserURLs(ctx context.Context, userID uuid.UUID) ([]*response.Ge
 	return resp, nil
 }
 
-func (s *URL) DeleteURLs(ctx context.Context, dto *DeleteURLsDTO) error {
-	doneCh := make(chan struct{})
-	// intentionally no defer close doneCh
-	// because we need to return nil regardless of deletion result
-	// but also want methods to be universal so support for done channel is left for them
-
+func (s *URL) DeleteURLs(ctx context.Context, dto *dto.DeleteURLs) error {
 	go func() {
+		doneCh := make(chan struct{})
+		defer close(doneCh)
+
 		urls, err := s.storage.GetURLs(context.TODO(), dto.ShortKeys)
 		if err != nil {
 			return

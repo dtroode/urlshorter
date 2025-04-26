@@ -62,7 +62,7 @@ func TestJWT_GetUserID(t *testing.T) {
 	}
 }
 
-func TestJWT_Create(t *testing.T) {
+func TestJWT_CreateToken(t *testing.T) {
 	secretKey := "a-string-secret-at-least-256-bits-long"
 	userID := uuid.New()
 
@@ -71,7 +71,7 @@ func TestJWT_Create(t *testing.T) {
 
 		j := NewJWT(secretKey)
 
-		tokenString, err := j.Create(context.Background(), userID)
+		tokenString, err := j.CreateToken(context.Background(), userID)
 
 		require.NoError(t, err)
 		require.NotEqual(t, "", tokenString)

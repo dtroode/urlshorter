@@ -12,7 +12,7 @@ import (
 
 type Token interface {
 	GetUserID(ctx context.Context, tokenString string) (uuid.UUID, error)
-	Create(ctx context.Context, userID uuid.UUID) (string, error)
+	CreateToken(ctx context.Context, userID uuid.UUID) (string, error)
 }
 
 type Authenticate struct {
@@ -71,7 +71,7 @@ func (m *Authenticate) Handle(h http.Handler) http.Handler {
 }
 
 func (m *Authenticate) setCookie(ctx context.Context, w http.ResponseWriter, userID uuid.UUID) {
-	tokenString, err := m.token.Create(ctx, userID)
+	tokenString, err := m.token.CreateToken(ctx, userID)
 	if err != nil {
 		m.logger.Error("failed to create token", "error", err)
 		w.WriteHeader(http.StatusInternalServerError)

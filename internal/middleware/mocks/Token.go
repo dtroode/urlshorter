@@ -23,12 +23,12 @@ func (_m *Token) EXPECT() *Token_Expecter {
 	return &Token_Expecter{mock: &_m.Mock}
 }
 
-// Create provides a mock function with given fields: ctx, userID
-func (_m *Token) Create(ctx context.Context, userID uuid.UUID) (string, error) {
+// CreateToken provides a mock function with given fields: ctx, userID
+func (_m *Token) CreateToken(ctx context.Context, userID uuid.UUID) (string, error) {
 	ret := _m.Called(ctx, userID)
 
 	if len(ret) == 0 {
-		panic("no return value specified for Create")
+		panic("no return value specified for CreateToken")
 	}
 
 	var r0 string
@@ -51,31 +51,31 @@ func (_m *Token) Create(ctx context.Context, userID uuid.UUID) (string, error) {
 	return r0, r1
 }
 
-// Token_Create_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Create'
-type Token_Create_Call struct {
+// Token_CreateToken_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateToken'
+type Token_CreateToken_Call struct {
 	*mock.Call
 }
 
-// Create is a helper method to define mock.On call
+// CreateToken is a helper method to define mock.On call
 //   - ctx context.Context
 //   - userID uuid.UUID
-func (_e *Token_Expecter) Create(ctx interface{}, userID interface{}) *Token_Create_Call {
-	return &Token_Create_Call{Call: _e.mock.On("Create", ctx, userID)}
+func (_e *Token_Expecter) CreateToken(ctx interface{}, userID interface{}) *Token_CreateToken_Call {
+	return &Token_CreateToken_Call{Call: _e.mock.On("CreateToken", ctx, userID)}
 }
 
-func (_c *Token_Create_Call) Run(run func(ctx context.Context, userID uuid.UUID)) *Token_Create_Call {
+func (_c *Token_CreateToken_Call) Run(run func(ctx context.Context, userID uuid.UUID)) *Token_CreateToken_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(uuid.UUID))
 	})
 	return _c
 }
 
-func (_c *Token_Create_Call) Return(_a0 string, _a1 error) *Token_Create_Call {
+func (_c *Token_CreateToken_Call) Return(_a0 string, _a1 error) *Token_CreateToken_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *Token_Create_Call) RunAndReturn(run func(context.Context, uuid.UUID) (string, error)) *Token_Create_Call {
+func (_c *Token_CreateToken_Call) RunAndReturn(run func(context.Context, uuid.UUID) (string, error)) *Token_CreateToken_Call {
 	_c.Call.Return(run)
 	return _c
 }
