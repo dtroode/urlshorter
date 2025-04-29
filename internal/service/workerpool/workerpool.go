@@ -11,28 +11,10 @@ type Result struct {
 }
 
 type Job struct {
-	ctx     context.Context
-	timeout time.Duration
-	fn      func(ctx context.Context) (any, error)
-	resCh   chan *Result
-}
-
-func NewJob(
-	ctx context.Context,
-	timeout time.Duration,
-	fn func(ctx context.Context) (any, error),
-) *Job {
-	return &Job{
-		ctx:     ctx,
-		timeout: timeout,
-		fn:      fn,
-		resCh:   make(chan *Result),
-	}
-}
-
-func (j *Job) GetResult() *Result {
-	res := <-j.resCh
-	return res
+	Ctx     context.Context
+	Timeout time.Duration
+	Fn      func(ctx context.Context) (any, error)
+	ResCh   chan *Result
 }
 
 type Pool struct {
@@ -57,23 +39,44 @@ func (p *Pool) Start() {
 	}
 }
 
-func (p *Pool) AddJob(job *Job) {
+func (p *Pool) Submit(
+	ctx context.Context,
+	timeout time.Duration,
+	fn func(ctx context.Context) (any, error),
+	expectResult bool,
+) *Job {
+	var resCh chan *Result
+	if expectResult {
+		resCh = make(chan *Result, 1)
+	}
+
+	job := &Job{
+		Ctx:     ctx,
+		Timeout: timeout,
+		Fn:      fn,
+		ResCh:   resCh,
+	}
+
 	p.jobs <- job
+	return job
 }
 
 func (p *Pool) worker() {
 	for job := range p.jobs {
 		func() {
-			ctx, cancel := context.WithTimeout(job.ctx, job.timeout)
+			ctx, cancel := context.WithTimeout(job.Ctx, job.Timeout)
 			defer cancel()
 
-			res, err := job.fn(ctx)
-			r := &Result{
-				Value: res,
-				Err:   err,
-			}
+			res, err := job.Fn(ctx)
 
-			job.resCh <- r
+			if job.ResCh != nil {
+				r := &Result{
+					Value: res,
+					Err:   err,
+				}
+
+				job.ResCh <- r
+			}
 		}()
 	}
 }

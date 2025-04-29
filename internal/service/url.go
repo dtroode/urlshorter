@@ -17,6 +17,8 @@ import (
 	"github.com/google/uuid"
 )
 
+const deleteBatchSize = 10
+
 type URLStorage interface {
 	GetURL(ctx context.Context, shortKey string) (*model.URL, error)
 	GetURLs(ctx context.Context, shortKeys []string) ([]*model.URL, error)
@@ -171,12 +173,14 @@ func (s *URL) GetUserURLs(ctx context.Context, userID uuid.UUID) ([]*response.Ge
 	return resp, nil
 }
 
-func (s *URL) DeleteURLs(_ context.Context, dto *dto.DeleteURLs) error {
-	job := workerpool.NewJob(context.Background(), 30*time.Second, s.deleteURLsJob(dto))
-	s.pool.AddJob(job)
-
+func (s *URL) DeleteURLs(_ context.Context, data *dto.DeleteURLs) error {
 	go func() {
-		job.GetResult()
+		batches := splitIntoBatches(data.ShortKeys, deleteBatchSize)
+
+		for _, batch := range batches {
+			batchDTO := dto.NewDeleteURLs(batch, data.UserID)
+			_ = s.pool.Submit(context.Background(), 30*time.Second, s.deleteURLsJob(batchDTO), false)
+		}
 	}()
 
 	return nil
@@ -203,4 +207,19 @@ func (s *URL) deleteURLsJob(dto *dto.DeleteURLs) func(context.Context) (any, err
 
 		return nil, nil
 	}
+}
+
+func splitIntoBatches[T any](items []T, batchSize int) [][]T {
+	count := (len(items) + batchSize - 1) / batchSize
+	batches := make([][]T, 0, count)
+
+	for batchSize < len(items) {
+		batches = append(batches, items[0:batchSize:batchSize])
+		items = items[batchSize:]
+	}
+	if len(items) > 0 {
+		batches = append(batches, items)
+	}
+
+	return batches
 }
