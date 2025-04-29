@@ -512,13 +512,13 @@ func TestURL_DeleteURLs(t *testing.T) {
 		wg := sync.WaitGroup{}
 		wg.Add(1)
 
-		urlStorage.On("GetURLs", context.TODO(), shortKeys).Once().
+		urlStorage.On("GetURLs", mock.Anything, shortKeys).Once().
 			Run(func(args mock.Arguments) {
 				defer wg.Done()
 			}).
 			Return(nil, errors.New("service error"))
 
-		service := NewURL("base", 3, urlStorage)
+		service := NewURL("base", 3, 3, 15, urlStorage)
 		service.DeleteURLs(context.Background(), dto)
 
 		wg.Wait()
@@ -533,18 +533,18 @@ func TestURL_DeleteURLs(t *testing.T) {
 		wg.Add(2)
 
 		urlStorage := mocks.NewURLStorage(t)
-		urlStorage.On("GetURLs", context.TODO(), shortKeys).Once().
+		urlStorage.On("GetURLs", mock.Anything, shortKeys).Once().
 			Run(func(args mock.Arguments) {
 				defer wg.Done()
 			}).
 			Return(urls, nil)
-		urlStorage.On("DeleteURLs", context.TODO(), []uuid.UUID{urls[0].ID}).Once().
+		urlStorage.On("DeleteURLs", mock.Anything, []uuid.UUID{urls[0].ID}).Once().
 			Run(func(args mock.Arguments) {
 				defer wg.Done()
 			}).
 			Return(nil)
 
-		service := NewURL("base", 3, urlStorage)
+		service := NewURL("base", 3, 3, 15, urlStorage)
 		service.DeleteURLs(context.Background(), dto)
 
 		wg.Wait()

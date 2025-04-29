@@ -7,10 +7,12 @@ import (
 	"math/rand"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/dtroode/urlshorter/internal/model"
 	"github.com/dtroode/urlshorter/internal/response"
 	"github.com/dtroode/urlshorter/internal/service/dto"
+	"github.com/dtroode/urlshorter/internal/service/workerpool"
 	"github.com/dtroode/urlshorter/internal/storage"
 	"github.com/google/uuid"
 )
@@ -28,18 +30,27 @@ type URL struct {
 	baseURL        string
 	shortKeyLength int
 	storage        URLStorage
+	pool           *workerpool.Pool
 }
 
 func NewURL(
 	baseURL string,
 	shortKeyLength int,
+	concurrencyLimit int,
+	queueSize int,
 	storage URLStorage,
 ) *URL {
-	return &URL{
+	service := &URL{
 		baseURL:        baseURL,
 		shortKeyLength: shortKeyLength,
 		storage:        storage,
 	}
+
+	pool := workerpool.NewPool(concurrencyLimit, queueSize)
+	service.pool = pool
+	pool.Start()
+
+	return service
 }
 
 func (s *URL) generateString() string {
@@ -160,67 +171,36 @@ func (s *URL) GetUserURLs(ctx context.Context, userID uuid.UUID) ([]*response.Ge
 	return resp, nil
 }
 
-func (s *URL) DeleteURLs(ctx context.Context, dto *dto.DeleteURLs) error {
+func (s *URL) DeleteURLs(_ context.Context, dto *dto.DeleteURLs) error {
+	job := workerpool.NewJob(context.Background(), 30*time.Second, s.deleteURLsJob(dto))
+	s.pool.AddJob(job)
+
 	go func() {
-		doneCh := make(chan struct{})
-		defer close(doneCh)
-
-		urls, err := s.storage.GetURLs(context.TODO(), dto.ShortKeys)
-		if err != nil {
-			return
-		}
-
-		inputCh := s.urlsGenerator(doneCh, urls)
-		userURLsCh := s.filterURLsByUser(doneCh, inputCh, dto.UserID)
-
-		ids := make([]uuid.UUID, 0)
-		for url := range userURLsCh {
-			ids = append(ids, url.ID)
-		}
-		err = s.storage.DeleteURLs(context.TODO(), ids)
-		if err != nil {
-			return
-		}
+		job.GetResult()
 	}()
 
 	return nil
 }
 
-func (s *URL) urlsGenerator(doneCh <-chan struct{}, input []*model.URL) <-chan *model.URL {
-	inputCh := make(chan *model.URL)
+func (s *URL) deleteURLsJob(dto *dto.DeleteURLs) func(context.Context) (any, error) {
+	return func(ctx context.Context) (any, error) {
+		urls, err := s.storage.GetURLs(ctx, dto.ShortKeys)
+		if err != nil {
+			return nil, err
+		}
 
-	go func() {
-		defer close(inputCh)
-
-		for _, i := range input {
-			select {
-			case <-doneCh:
-				return
-			case inputCh <- i:
+		ids := make([]uuid.UUID, 0)
+		for _, url := range urls {
+			if url.UserID == dto.UserID {
+				ids = append(ids, url.ID)
 			}
 		}
-	}()
 
-	return inputCh
-}
-
-func (s *URL) filterURLsByUser(doneCh <-chan struct{}, urlsCh <-chan *model.URL, userID uuid.UUID) <-chan *model.URL {
-	userURLs := make(chan *model.URL)
-
-	go func() {
-		defer close(userURLs)
-
-		for u := range urlsCh {
-			select {
-			case <-doneCh:
-				return
-			default:
-				if u.UserID == userID {
-					userURLs <- u
-				}
-			}
+		err = s.storage.DeleteURLs(ctx, ids)
+		if err != nil {
+			return nil, err
 		}
-	}()
 
-	return userURLs
+		return nil, nil
+	}
 }

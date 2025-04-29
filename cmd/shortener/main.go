@@ -47,7 +47,7 @@ func main() {
 	}
 	defer urlStorage.Close()
 
-	urlService := service.NewURL(config.BaseURL, config.ShortKeyLength, urlStorage)
+	urlService := service.NewURL(config.BaseURL, config.ShortKeyLength, config.ConcurrencyLimit, config.QueueSize, urlStorage)
 	healthService := service.NewHealth(urlStorage)
 
 	jwt := auth.NewJWT(config.JWTSecretKey)
