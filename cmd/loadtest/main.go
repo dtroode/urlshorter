@@ -91,6 +91,7 @@ func runUser(userNum int, baseURL string) {
 		log.Printf("User %d: Failed to create session: %v", userNum, err)
 		return
 	}
+	defer resp.Body.Close()
 
 	// Get user ID from cookie
 	cookies := resp.Cookies()

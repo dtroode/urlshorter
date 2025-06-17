@@ -2,6 +2,7 @@ package workerpool
 
 import (
 	"context"
+	"errors"
 	"time"
 )
 
@@ -75,20 +76,36 @@ func (p *Pool) Submit(
 // worker represents a worker goroutine that processes jobs.
 func (p *Pool) worker() {
 	for job := range p.jobs {
-		func() {
+		go func(job *Job) {
 			ctx, cancel := context.WithTimeout(job.Ctx, job.Timeout)
 			defer cancel()
 
-			res, err := job.Fn(ctx)
+			resultCh := make(chan *Result, 1)
+
+			if job.Fn == nil {
+				if job.ResCh != nil {
+					resultCh <- &Result{Err: errors.New("job function is nil")}
+				}
+			} else {
+				go func() {
+					res, err := job.Fn(ctx)
+					resultCh <- &Result{Value: res, Err: err}
+				}()
+			}
 
 			if job.ResCh != nil {
-				r := &Result{
-					Value: res,
-					Err:   err,
+				select {
+				case <-ctx.Done():
+					job.ResCh <- &Result{Err: ctx.Err()}
+				case r := <-resultCh:
+					job.ResCh <- r
 				}
-
-				job.ResCh <- r
+			} else {
+				select {
+				case <-ctx.Done():
+				case <-resultCh:
+				}
 			}
-		}()
+		}(job)
 	}
 }
