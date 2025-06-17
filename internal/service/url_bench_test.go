@@ -248,30 +248,31 @@ func BenchmarkURL_DeleteURLs(b *testing.B) {
 
 	for _, batchSize := range batchSizes {
 		shortKeys := make([]string, 0)
-		urlModels := make([][]*model.URL, urlsCount/batchSize)
-		for i := 0; i < urlsCount/batchSize; i++ {
-			urlModels[i] = make([]*model.URL, batchSize)
-			for j := 0; j < batchSize; j++ {
-				shortKeys = append(shortKeys, uuid.New().String())
-				urlModels[i][j] = &model.URL{
-					ShortKey:    shortKeys[j],
-					OriginalURL: fmt.Sprintf("https://example.com/%s", shortKeys[j]),
-					UserID:      userID,
-				}
+		urlMap := make(map[string]*model.URL)
+
+		for i := 0; i < urlsCount; i++ {
+			shortKey := uuid.New().String()
+			shortKeys = append(shortKeys, shortKey)
+
+			urlModel := &model.URL{
+				ID:          uuid.New(),
+				ShortKey:    shortKey,
+				OriginalURL: fmt.Sprintf("https://example.com/%s", shortKey),
+				UserID:      userID,
 			}
+			urlMap[shortKey] = urlModel
 		}
 
-		callNumber := 0
-		storage.On("GetURLs", mock.Anything, mock.MatchedBy(func(keys []string) bool {
-			return len(keys) == batchSize
-		})).Return(func(ctx context.Context, keys []string) ([]*model.URL, error) {
-			currentBatch := urlModels[callNumber]
-			callNumber++
-			if callNumber >= urlsCount/batchSize {
-				callNumber = 0
+		storage.On("GetURLs", mock.Anything, mock.Anything).Return(func(ctx context.Context, keys []string) ([]*model.URL, error) {
+			result := make([]*model.URL, 0, len(keys))
+			for _, key := range keys {
+				if url, exists := urlMap[key]; exists {
+					result = append(result, url)
+				}
 			}
-			return currentBatch, nil
+			return result, nil
 		}, nil)
+
 		storage.On("DeleteURLs", mock.Anything, mock.Anything).Return(nil)
 
 		b.Run(fmt.Sprintf("BatchSize_%d", batchSize), func(b *testing.B) {

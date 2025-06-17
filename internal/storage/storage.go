@@ -8,6 +8,7 @@ import (
 	"github.com/dtroode/urlshorter/internal/model"
 )
 
+// Storage defines the interface for URL storage operations.
 type Storage interface {
 	Ping(ctx context.Context) error
 	GetURL(ctx context.Context, shortKey string) (*model.URL, error)

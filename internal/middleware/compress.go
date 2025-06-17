@@ -24,6 +24,7 @@ var writerPool = &sync.Pool{
 	},
 }
 
+// Compress middleware compresses HTTP responses using gzip.
 func Compress(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ae := r.Header.Get("Accept-Encoding")
@@ -59,6 +60,7 @@ func Compress(h http.Handler) http.Handler {
 	})
 }
 
+// shouldCompress determines if response should be compressed.
 func shouldCompress(rw *responseCaptureWriter) bool {
 	contentType := rw.Header().Get("Content-Type")
 	if contentType != "" {
@@ -81,11 +83,13 @@ type responseCaptureWriter struct {
 	statusCode int
 }
 
+// Write captures response body for compression decision.
 func (rc *responseCaptureWriter) Write(data []byte) (int, error) {
 	rc.body.Write(data)
 	return len(data), nil
 }
 
+// WriteHeader captures response status code.
 func (rc *responseCaptureWriter) WriteHeader(statusCode int) {
 	rc.statusCode = statusCode
 }

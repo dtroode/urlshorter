@@ -11,20 +11,24 @@ import (
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 )
 
+// Router represents HTTP router with route registration capabilities.
 type Router struct {
 	chi.Router
 }
 
+// NewRouter creates new Router instance.
 func NewRouter() *Router {
 	return &Router{
 		Router: chi.NewRouter(),
 	}
 }
 
+// RegisterProfiler registers profiler routes for debugging.
 func (r *Router) RegisterProfiler() {
 	r.Mount("/debug", chiMiddleware.Profiler())
 }
 
+// RegisterAPIRoutes registers API routes with middleware.
 func (r *Router) RegisterAPIRoutes(s *service.URL, token middleware.Token, l *logger.Logger) {
 	loggerMiddleware := middleware.NewRequestLog(l).Handle
 	authenticate := middleware.NewAuthenticate(token, l).Handle
@@ -60,6 +64,7 @@ func (r *Router) RegisterAPIRoutes(s *service.URL, token middleware.Token, l *lo
 	})
 }
 
+// RegisterHealthRoutes registers health check routes.
 func (r *Router) RegisterHealthRoutes(s *service.Health, l *logger.Logger) {
 	loggerMiddleware := middleware.NewRequestLog(l).Handle
 	h := handler.NewHealth(s, l)

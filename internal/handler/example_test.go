@@ -44,6 +44,7 @@ func ExampleURL_GetOriginalURL() {
 	handler.GetOriginalURL(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	fmt.Printf("Status: %d\n", resp.StatusCode)
 	fmt.Printf("Location: %s\n", resp.Header.Get("location"))
 
@@ -74,6 +75,7 @@ func ExampleURL_CreateShortURL() {
 	handler.CreateShortURL(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	bodyBytes, _ := io.ReadAll(resp.Body)
 
 	fmt.Printf("Status: %d\n", resp.StatusCode)
@@ -115,6 +117,7 @@ func ExampleURL_CreateShortURLJSON() {
 	handler.CreateShortURLJSON(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	respBodyBytes, _ := io.ReadAll(resp.Body)
 
 	fmt.Printf("Status: %d\n", resp.StatusCode)
@@ -173,6 +176,7 @@ func ExampleURL_CreateShortURLBatch() {
 	handler.CreateShortURLBatch(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	respBodyBytes, _ := io.ReadAll(resp.Body)
 
 	fmt.Printf("Status: %d\n", resp.StatusCode)
@@ -216,6 +220,7 @@ func ExampleURL_GetUserURLs() {
 	handler.GetUserURLs(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	respBodyBytes, _ := io.ReadAll(resp.Body)
 
 	fmt.Printf("Status: %d\n", resp.StatusCode)
@@ -254,6 +259,7 @@ func ExampleURL_DeleteURLs() {
 	handler.DeleteURLs(w, req)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 
 	fmt.Printf("Status: %d\n", resp.StatusCode)
 

@@ -13,6 +13,7 @@ type gzipReader struct {
 	r io.ReadCloser
 }
 
+// Close closes both the gzip reader and the underlying reader.
 func (gr *gzipReader) Close() error {
 	if err := gr.r.Close(); err != nil {
 		return err
@@ -20,6 +21,7 @@ func (gr *gzipReader) Close() error {
 	return gr.g.Close()
 }
 
+// Read reads data from the gzip reader.
 func (gr *gzipReader) Read(p []byte) (n int, err error) {
 	return gr.g.Read(p)
 }
@@ -30,6 +32,7 @@ var readerPool = &sync.Pool{
 	},
 }
 
+// Decompress middleware decompresses gzipped HTTP requests.
 func Decompress(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ce := r.Header.Get("Content-Encoding")

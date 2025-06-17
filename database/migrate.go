@@ -12,6 +12,7 @@ import (
 //go:embed migrations/*.sql
 var embedMigrations embed.FS
 
+// Migrate performs database migrations.
 func Migrate(ctx context.Context, dsn string) error {
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {
