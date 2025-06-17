@@ -1,0 +1,458 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "A URL shortening service API that allows users to create short URLs from long ones",
+        "title": "URL Shortener API",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "API Support",
+            "url": "http://www.swagger.io/support",
+            "email": "support@swagger.io"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/",
+    "paths": {
+        "/": {
+            "post": {
+                "description": "Creates a shortened URL from the provided plain text URL",
+                "consumes": [
+                    "text/plain"
+                ],
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "URLs"
+                ],
+                "summary": "Create short URL from plain text",
+                "parameters": [
+                    {
+                        "description": "Original URL to shorten",
+                        "name": "url",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Shortened URL created",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - invalid URL",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - invalid or missing authentication",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "409": {
+                        "description": "URL already exists",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/shorten": {
+            "post": {
+                "description": "Creates a shortened URL from the provided JSON request",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "URLs"
+                ],
+                "summary": "Create short URL from JSON",
+                "parameters": [
+                    {
+                        "description": "URL shortening request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.CreateShortURL"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Shortened URL created",
+                        "schema": {
+                            "$ref": "#/definitions/response.CreateShortURL"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - invalid JSON",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - invalid or missing authentication",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "409": {
+                        "description": "URL already exists",
+                        "schema": {
+                            "$ref": "#/definitions/response.CreateShortURL"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/shorten/batch": {
+            "post": {
+                "description": "Creates multiple shortened URLs from the provided batch request",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "URLs"
+                ],
+                "summary": "Create multiple short URLs in batch",
+                "parameters": [
+                    {
+                        "description": "Batch URL shortening request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/request.CreateShortURLBatch"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Shortened URLs created",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/response.CreateShortURLBatch"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - invalid JSON or empty batch",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - invalid or missing authentication",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user/urls": {
+            "get": {
+                "description": "Retrieves all URLs created by the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Get user's URLs",
+                "responses": {
+                    "200": {
+                        "description": "User's URLs",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/response.GetUserURL"
+                            }
+                        }
+                    },
+                    "204": {
+                        "description": "No URLs found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - invalid or missing authentication",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Marks the specified URLs as deleted for the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Delete user's URLs",
+                "parameters": [
+                    {
+                        "description": "Array of short keys to delete",
+                        "name": "shortKeys",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "URLs marked for deletion",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - invalid JSON",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - invalid or missing authentication",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/ping": {
+            "get": {
+                "description": "Check if the service is running and database is accessible",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Health"
+                ],
+                "summary": "Health check",
+                "responses": {
+                    "200": {
+                        "description": "Service is healthy",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Service is unhealthy",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/{id}": {
+            "get": {
+                "description": "Redirects to the original URL associated with the provided short key",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "URLs"
+                ],
+                "summary": "Get original URL by short key",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Short URL identifier",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "307": {
+                        "description": "Temporary redirect to original URL",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request - missing short key",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "URL not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "410": {
+                        "description": "URL has been deleted",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "request.CreateShortURL": {
+            "description": "Request structure for creating a shortened URL",
+            "type": "object",
+            "properties": {
+                "url": {
+                    "description": "URL is the original URL to be shortened.\nMust be a valid HTTP/HTTPS URL.\n@Example \"https://example.com/very-long-url-path\"",
+                    "type": "string",
+                    "example": "https://example.com/very-long-url-path"
+                }
+            }
+        },
+        "request.CreateShortURLBatch": {
+            "description": "Request structure for batch URL shortening operations",
+            "type": "object",
+            "properties": {
+                "correlation_id": {
+                    "description": "CorrelationID is a unique identifier for tracking the request in batch operations.\nUsed to correlate the response with the original request.\n@Example \"req-123\"",
+                    "type": "string",
+                    "example": "req-123"
+                },
+                "original_url": {
+                    "description": "OriginalURL is the original URL to be shortened.\nMust be a valid HTTP/HTTPS URL.\n@Example \"https://example.com/very-long-url-path\"",
+                    "type": "string",
+                    "example": "https://example.com/very-long-url-path"
+                }
+            }
+        },
+        "response.CreateShortURL": {
+            "description": "Response structure for a created shortened URL",
+            "type": "object",
+            "properties": {
+                "result": {
+                    "description": "URL is the shortened URL that was created.\nContains the full shortened URL including the base URL.\n@Example \"https://shortener.example.com/abc123\"",
+                    "type": "string",
+                    "example": "https://shortener.example.com/abc123"
+                }
+            }
+        },
+        "response.CreateShortURLBatch": {
+            "description": "Response structure for batch URL shortening operations",
+            "type": "object",
+            "properties": {
+                "correlation_id": {
+                    "description": "CorrelationID is the unique identifier that was provided in the request.\nUsed to correlate the response with the original request.\n@Example \"req-123\"",
+                    "type": "string",
+                    "example": "req-123"
+                },
+                "short_url": {
+                    "description": "ShortURL is the shortened URL that was created for the original URL.\nContains the full shortened URL including the base URL.\n@Example \"https://shortener.example.com/abc123\"",
+                    "type": "string",
+                    "example": "https://shortener.example.com/abc123"
+                }
+            }
+        },
+        "response.GetUserURL": {
+            "description": "Response structure for a user's URL entry",
+            "type": "object",
+            "properties": {
+                "original_url": {
+                    "description": "OriginalURL is the original URL that was shortened.\nContains the full original URL that was provided during creation.\n@Example \"https://example.com/very-long-url-path\"",
+                    "type": "string",
+                    "example": "https://example.com/very-long-url-path"
+                },
+                "short_url": {
+                    "description": "ShortURL is the shortened URL created by the user.\nContains the full shortened URL including the base URL.\n@Example \"https://shortener.example.com/abc123\"",
+                    "type": "string",
+                    "example": "https://shortener.example.com/abc123"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "description": "Type \"Bearer\" followed by a space and JWT token.",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
+    }
+}

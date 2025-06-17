@@ -27,6 +27,14 @@ func NewHealth(s HealthService, l *logger.Logger) *Health {
 }
 
 // Ping handles service health check request.
+// @Summary Health check
+// @Description Check if the service is running and database is accessible
+// @Tags Health
+// @Accept json
+// @Produce json
+// @Success 200 {string} string "Service is healthy"
+// @Failure 500 {string} string "Service is unhealthy"
+// @Router /ping [get]
 func (h *Health) Ping(w http.ResponseWriter, r *http.Request) {
 	err := h.service.Ping(r.Context())
 	if err != nil {
