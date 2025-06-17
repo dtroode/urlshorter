@@ -9,12 +9,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/dtroode/urlshorter/internal/model"
 	"github.com/dtroode/urlshorter/internal/response"
 	"github.com/dtroode/urlshorter/internal/service/dto"
 	"github.com/dtroode/urlshorter/internal/service/workerpool"
 	"github.com/dtroode/urlshorter/internal/storage"
-	"github.com/google/uuid"
 )
 
 const deleteBatchSize = 10
@@ -58,6 +59,7 @@ func NewURL(
 func (s *URL) generateString() string {
 	var characters = []rune("ABCDEF0123456789")
 	var sb strings.Builder
+	sb.Grow(s.shortKeyLength)
 
 	for range s.shortKeyLength {
 		randomIndex := rand.Intn(len(characters))

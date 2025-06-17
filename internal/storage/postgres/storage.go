@@ -5,13 +5,14 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/dtroode/urlshorter/database"
-	"github.com/dtroode/urlshorter/internal/model"
-	"github.com/dtroode/urlshorter/internal/storage"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/pgtype"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/dtroode/urlshorter/database"
+	"github.com/dtroode/urlshorter/internal/model"
+	"github.com/dtroode/urlshorter/internal/storage"
 )
 
 type Storage struct {
@@ -21,7 +22,12 @@ type Storage struct {
 func NewStorage(dsn string) (*Storage, error) {
 	ctx := context.Background()
 
-	pool, err := pgxpool.New(ctx, dsn)
+	conf, err := pgxpool.ParseConfig(dsn)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse postgres dsn: %w", err)
+	}
+
+	pool, err := pgxpool.NewWithConfig(ctx, conf)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open connection pool: %w", err)
 	}
@@ -53,6 +59,7 @@ func (s *Storage) GetURL(ctx context.Context, shortKey string) (*model.URL, erro
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, storage.ErrNotFound
 		}
+		return nil, fmt.Errorf("failed to get url: %w", err)
 	}
 
 	return &url, nil
@@ -85,7 +92,7 @@ func (s *Storage) GetURLs(ctx context.Context, shortKeys []string) ([]*model.URL
 }
 
 func (s *Storage) GetURLsByUserID(ctx context.Context, userID uuid.UUID) ([]*model.URL, error) {
-	query := `SELECT id, short_key, original_url, user_id, deleted_at FROM urls WHERE user_id = $1`
+	query := `SELECT id, short_key, original_url, user_id, deleted_at FROM urls WHERE user_id = $1 AND deleted_at IS NULL`
 	rows, err := s.db.Query(ctx, query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query rows: %w", err)

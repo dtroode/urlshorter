@@ -1,11 +1,12 @@
 package router
 
 import (
+	"github.com/go-chi/chi/v5"
+
 	"github.com/dtroode/urlshorter/internal/handler"
 	"github.com/dtroode/urlshorter/internal/logger"
 	"github.com/dtroode/urlshorter/internal/middleware"
 	"github.com/dtroode/urlshorter/internal/service"
-	"github.com/go-chi/chi/v5"
 
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 )
@@ -18,6 +19,10 @@ func NewRouter() *Router {
 	return &Router{
 		Router: chi.NewRouter(),
 	}
+}
+
+func (r *Router) RegisterProfiler() {
+	r.Mount("/debug", chiMiddleware.Profiler())
 }
 
 func (r *Router) RegisterAPIRoutes(s *service.URL, token middleware.Token, l *logger.Logger) {

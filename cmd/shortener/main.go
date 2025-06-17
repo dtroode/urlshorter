@@ -53,6 +53,7 @@ func main() {
 	jwt := auth.NewJWT(config.JWTSecretKey)
 
 	r := router.NewRouter()
+	r.RegisterProfiler()
 	r.RegisterAPIRoutes(urlService, jwt, logger)
 	r.RegisterHealthRoutes(healthService, logger)
 

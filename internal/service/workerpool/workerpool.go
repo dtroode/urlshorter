@@ -39,6 +39,10 @@ func (p *Pool) Start() {
 	}
 }
 
+func (p *Pool) Close() {
+	close(p.jobs)
+}
+
 func (p *Pool) Submit(
 	ctx context.Context,
 	timeout time.Duration,
