@@ -9,43 +9,40 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"testing"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/mock"
 
 	"github.com/dtroode/urlshorter/internal/auth"
 	"github.com/dtroode/urlshorter/internal/handler/mocks"
 	"github.com/dtroode/urlshorter/internal/logger"
 	"github.com/dtroode/urlshorter/internal/request"
+	"github.com/dtroode/urlshorter/internal/response"
 )
 
 // ExampleURL_GetOriginalURL demonstrates how to handle a GET request to retrieve the original URL.
 func ExampleURL_GetOriginalURL() {
-	// Create a mock service
-	service := mocks.NewURLService(nil)
+	service := mocks.NewURLService(&testing.T{})
 
-	// Create a logger
+	service.On("GetOriginalURL", mock.Anything, "abc123").Return("https://example.com/very-long-url-path", nil)
+
 	logger := &logger.Logger{}
 
-	// Create the handler
 	handler := NewURL(service, logger)
 
-	// Create a test request
 	req := httptest.NewRequest(http.MethodGet, "/abc123", nil)
 
-	// Add chi context with URL parameter
 	chiContext := chi.NewRouteContext()
 	chiContext.URLParams.Add("id", "abc123")
 	ctx := context.WithValue(req.Context(), chi.RouteCtxKey, chiContext)
 	req = req.WithContext(ctx)
 
-	// Create a response recorder
 	w := httptest.NewRecorder()
 
-	// Call the handler
 	handler.GetOriginalURL(w, req)
 
-	// Check the response
 	resp := w.Result()
 	fmt.Printf("Status: %d\n", resp.StatusCode)
 	fmt.Printf("Location: %s\n", resp.Header.Get("location"))
@@ -57,31 +54,25 @@ func ExampleURL_GetOriginalURL() {
 
 // ExampleURL_CreateShortURL demonstrates how to handle a POST request to create a shortened URL from plain text.
 func ExampleURL_CreateShortURL() {
-	// Create a mock service
-	service := mocks.NewURLService(nil)
+	service := mocks.NewURLService(&testing.T{})
 
-	// Create a logger
+	userID := uuid.New()
+	service.On("CreateShortURL", mock.Anything, mock.AnythingOfType("*dto.CreateShortURL")).Return("https://shortener.example.com/abc123", nil)
+
 	logger := &logger.Logger{}
 
-	// Create the handler
 	handler := NewURL(service, logger)
 
-	// Create a test request with plain text body
 	body := strings.NewReader("https://example.com/very-long-url-path")
 	req := httptest.NewRequest(http.MethodPost, "/", body)
 
-	// Set user ID in context
-	userID := uuid.New()
 	ctx := auth.SetUserIDToContext(req.Context(), userID)
 	req = req.WithContext(ctx)
 
-	// Create a response recorder
 	w := httptest.NewRecorder()
 
-	// Call the handler
 	handler.CreateShortURL(w, req)
 
-	// Check the response
 	resp := w.Result()
 	bodyBytes, _ := io.ReadAll(resp.Body)
 
@@ -97,16 +88,15 @@ func ExampleURL_CreateShortURL() {
 
 // ExampleURL_CreateShortURLJSON demonstrates how to handle a POST request to create a shortened URL from JSON.
 func ExampleURL_CreateShortURLJSON() {
-	// Create a mock service
-	service := mocks.NewURLService(nil)
+	service := mocks.NewURLService(&testing.T{})
 
-	// Create a logger
+	userID := uuid.New()
+	service.On("CreateShortURL", mock.Anything, mock.AnythingOfType("*dto.CreateShortURL")).Return("https://shortener.example.com/abc123", nil)
+
 	logger := &logger.Logger{}
 
-	// Create the handler
 	handler := NewURL(service, logger)
 
-	// Create request body
 	requestBody := request.CreateShortURL{
 		URL: "https://example.com/very-long-url-path",
 	}
@@ -114,22 +104,16 @@ func ExampleURL_CreateShortURLJSON() {
 	bodyBytes, _ := json.Marshal(requestBody)
 	body := bytes.NewReader(bodyBytes)
 
-	// Create a test request
 	req := httptest.NewRequest(http.MethodPost, "/api/shorten", body)
 	req.Header.Set("Content-Type", "application/json")
 
-	// Set user ID in context
-	userID := uuid.New()
 	ctx := auth.SetUserIDToContext(req.Context(), userID)
 	req = req.WithContext(ctx)
 
-	// Create a response recorder
 	w := httptest.NewRecorder()
 
-	// Call the handler
 	handler.CreateShortURLJSON(w, req)
 
-	// Check the response
 	resp := w.Result()
 	respBodyBytes, _ := io.ReadAll(resp.Body)
 
@@ -145,16 +129,25 @@ func ExampleURL_CreateShortURLJSON() {
 
 // ExampleURL_CreateShortURLBatch demonstrates how to handle a POST request to create multiple shortened URLs in batch.
 func ExampleURL_CreateShortURLBatch() {
-	// Create a mock service
-	service := mocks.NewURLService(nil)
+	service := mocks.NewURLService(&testing.T{})
 
-	// Create a logger
+	userID := uuid.New()
+	expectedResponse := []*response.CreateShortURLBatch{
+		{
+			CorrelationID: "req-123",
+			ShortURL:      "https://shortener.example.com/abc123",
+		},
+		{
+			CorrelationID: "req-456",
+			ShortURL:      "https://shortener.example.com/def456",
+		},
+	}
+	service.On("CreateShortURLBatch", mock.Anything, mock.AnythingOfType("*dto.CreateShortURLBatch")).Return(expectedResponse, nil)
+
 	logger := &logger.Logger{}
 
-	// Create the handler
 	handler := NewURL(service, logger)
 
-	// Create request body
 	requestBody := []*request.CreateShortURLBatch{
 		{
 			CorrelationID: "req-123",
@@ -169,22 +162,16 @@ func ExampleURL_CreateShortURLBatch() {
 	bodyBytes, _ := json.Marshal(requestBody)
 	body := bytes.NewReader(bodyBytes)
 
-	// Create a test request
 	req := httptest.NewRequest(http.MethodPost, "/api/shorten/batch", body)
 	req.Header.Set("Content-Type", "application/json")
 
-	// Set user ID in context
-	userID := uuid.New()
 	ctx := auth.SetUserIDToContext(req.Context(), userID)
 	req = req.WithContext(ctx)
 
-	// Create a response recorder
 	w := httptest.NewRecorder()
 
-	// Call the handler
 	handler.CreateShortURLBatch(w, req)
 
-	// Check the response
 	resp := w.Result()
 	respBodyBytes, _ := io.ReadAll(resp.Body)
 
@@ -200,30 +187,34 @@ func ExampleURL_CreateShortURLBatch() {
 
 // ExampleURL_GetUserURLs demonstrates how to handle a GET request to retrieve all URLs created by the user.
 func ExampleURL_GetUserURLs() {
-	// Create a mock service
-	service := mocks.NewURLService(nil)
+	service := mocks.NewURLService(&testing.T{})
 
-	// Create a logger
+	userID := uuid.New()
+	expectedResponse := []*response.GetUserURL{
+		{
+			ShortURL:    "https://shortener.example.com/abc123",
+			OriginalURL: "https://example.com/very-long-url-path-1",
+		},
+		{
+			ShortURL:    "https://shortener.example.com/def456",
+			OriginalURL: "https://example.com/very-long-url-path-2",
+		},
+	}
+	service.On("GetUserURLs", mock.Anything, userID).Return(expectedResponse, nil)
+
 	logger := &logger.Logger{}
 
-	// Create the handler
 	handler := NewURL(service, logger)
 
-	// Create a test request
 	req := httptest.NewRequest(http.MethodGet, "/api/user/urls", nil)
 
-	// Set user ID in context
-	userID := uuid.New()
 	ctx := auth.SetUserIDToContext(req.Context(), userID)
 	req = req.WithContext(ctx)
 
-	// Create a response recorder
 	w := httptest.NewRecorder()
 
-	// Call the handler
 	handler.GetUserURLs(w, req)
 
-	// Check the response
 	resp := w.Result()
 	respBodyBytes, _ := io.ReadAll(resp.Body)
 
@@ -239,36 +230,29 @@ func ExampleURL_GetUserURLs() {
 
 // ExampleURL_DeleteURLs demonstrates how to handle a DELETE request to mark URLs as deleted.
 func ExampleURL_DeleteURLs() {
-	// Create a mock service
-	service := mocks.NewURLService(nil)
+	service := mocks.NewURLService(&testing.T{})
 
-	// Create a logger
+	userID := uuid.New()
+	service.On("DeleteURLs", mock.Anything, mock.AnythingOfType("*dto.DeleteURLs")).Return(nil)
+
 	logger := &logger.Logger{}
 
-	// Create the handler
 	handler := NewURL(service, logger)
 
-	// Create request body
 	shortKeys := []string{"abc123", "def456"}
 	bodyBytes, _ := json.Marshal(shortKeys)
 	body := bytes.NewReader(bodyBytes)
 
-	// Create a test request
 	req := httptest.NewRequest(http.MethodDelete, "/api/user/urls", body)
 	req.Header.Set("Content-Type", "application/json")
 
-	// Set user ID in context
-	userID := uuid.New()
 	ctx := auth.SetUserIDToContext(req.Context(), userID)
 	req = req.WithContext(ctx)
 
-	// Create a response recorder
 	w := httptest.NewRecorder()
 
-	// Call the handler
 	handler.DeleteURLs(w, req)
 
-	// Check the response
 	resp := w.Result()
 
 	fmt.Printf("Status: %d\n", resp.StatusCode)
