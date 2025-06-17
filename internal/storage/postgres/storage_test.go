@@ -5,13 +5,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dtroode/urlshorter/internal/model"
-	"github.com/dtroode/urlshorter/internal/storage"
-	"github.com/dtroode/urlshorter/internal/storage/postgres"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/dtroode/urlshorter/internal/model"
+	"github.com/dtroode/urlshorter/internal/storage"
+	"github.com/dtroode/urlshorter/internal/storage/postgres"
 )
 
 const SKIP = true

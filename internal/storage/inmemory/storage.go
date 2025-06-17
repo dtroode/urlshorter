@@ -10,9 +10,10 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/google/uuid"
+
 	"github.com/dtroode/urlshorter/internal/model"
 	"github.com/dtroode/urlshorter/internal/storage"
-	"github.com/google/uuid"
 )
 
 type File interface {

@@ -3,8 +3,9 @@ package storage
 import (
 	"context"
 
-	"github.com/dtroode/urlshorter/internal/model"
 	"github.com/google/uuid"
+
+	"github.com/dtroode/urlshorter/internal/model"
 )
 
 type Storage interface {

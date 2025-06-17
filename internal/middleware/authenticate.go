@@ -5,9 +5,10 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/google/uuid"
+
 	"github.com/dtroode/urlshorter/internal/auth"
 	"github.com/dtroode/urlshorter/internal/logger"
-	"github.com/google/uuid"
 )
 
 type Token interface {

@@ -1,8 +1,9 @@
 package dto
 
 import (
-	"github.com/dtroode/urlshorter/internal/request"
 	"github.com/google/uuid"
+
+	"github.com/dtroode/urlshorter/internal/request"
 )
 
 type CreateShortURL struct {

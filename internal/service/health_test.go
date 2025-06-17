@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/dtroode/urlshorter/internal/service/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	"github.com/dtroode/urlshorter/internal/service/mocks"
 )
 
 func TestHealth_Ping(t *testing.T) {

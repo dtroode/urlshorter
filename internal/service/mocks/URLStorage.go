@@ -5,8 +5,9 @@ package mocks
 import (
 	context "context"
 
-	model "github.com/dtroode/urlshorter/internal/model"
 	mock "github.com/stretchr/testify/mock"
+
+	model "github.com/dtroode/urlshorter/internal/model"
 
 	uuid "github.com/google/uuid"
 )
