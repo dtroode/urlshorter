@@ -20,8 +20,9 @@ func NewRouter() *Router {
 	}
 }
 
-func (r *Router) RegisterAPIRoutes(s *service.URL, l *logger.Logger) {
+func (r *Router) RegisterAPIRoutes(s *service.URL, token middleware.Token, l *logger.Logger) {
 	loggerMiddleware := middleware.NewRequestLog(l).Handle
+	authenticate := middleware.NewAuthenticate(token, l).Handle
 	degzipper := middleware.Decompress
 	compressor := chiMiddleware.Compress(5)
 
@@ -29,16 +30,16 @@ func (r *Router) RegisterAPIRoutes(s *service.URL, l *logger.Logger) {
 
 	r.Route("/", func(r chi.Router) {
 		r.Use(loggerMiddleware)
+		r.Use(authenticate)
 		r.Use(degzipper)
 
 		r.With(compressor).Post("/", h.CreateShortURL)
-		r.Get("/{id}", h.GetShortURL)
-		r.With(compressor).Post("/", h.CreateShortURL)
-		r.Get("/{id}", h.GetShortURL)
+		r.Get("/{id}", h.GetOriginalURL)
 	})
 
 	r.Route("/api", func(r chi.Router) {
 		r.Use(loggerMiddleware)
+		r.Use(authenticate)
 		r.Use(degzipper)
 		r.Use(compressor)
 
@@ -47,6 +48,10 @@ func (r *Router) RegisterAPIRoutes(s *service.URL, l *logger.Logger) {
 			r.Post("/batch", h.CreateShortURLBatch)
 		})
 
+		r.Route("/user", func(r chi.Router) {
+			r.Get("/urls", h.GetUserURLs)
+			r.Delete("/urls", h.DeleteURLs)
+		})
 	})
 }
 

@@ -7,3 +7,5 @@ import (
 var ErrNotFound = errors.New("not found")
 var ErrInternal = errors.New("internal error")
 var ErrConflict = errors.New("conflict")
+var ErrNoContent = errors.New("no content")
+var ErrGone = errors.New("gone")

@@ -16,6 +16,13 @@ packages:
                 config:
             HealthService:
                 config:
+    github.com/dtroode/urlshorter/internal/middleware:
+        # place your package-specific config here
+        config:
+        interfaces:
+            # select the interfaces you want mocked
+            Token:
+                config:
     github.com/dtroode/urlshorter/internal/service:
         # place your package-specific config here
         config:
