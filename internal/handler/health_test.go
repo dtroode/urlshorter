@@ -8,9 +8,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/dtroode/urlshorter/internal/handler/mocks"
 	"github.com/dtroode/urlshorter/internal/logger"
-	"github.com/stretchr/testify/require"
 )
 
 func TestHealth_Ping(t *testing.T) {

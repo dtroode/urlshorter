@@ -8,6 +8,7 @@ import (
 	"github.com/caarlos0/env/v6"
 )
 
+// Config contains application configuration parameters.
 type Config struct {
 	RunAddr          string `env:"SERVER_ADDRESS"`
 	BaseURL          string `env:"BASE_URL"`
@@ -20,6 +21,7 @@ type Config struct {
 	QueueSize        int    `env:"QUEUE_SIZE"`
 }
 
+// Initialize creates and initializes application configuration.
 func Initialize() (*Config, error) {
 	config := new(Config)
 

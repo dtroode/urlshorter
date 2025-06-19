@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/google/uuid"
@@ -314,4 +315,32 @@ func TestURL_DeleteURLs(t *testing.T) {
 	}
 	err := s.DeleteURLs(context.Background(), ids)
 	require.NoError(t, err)
+}
+
+func TestURLMap_UnmarshalJSON(t *testing.T) {
+	jsonData := `[{"short_key":"abc","original_url":"https://ya.ru"},{"short_key":"def","original_url":"https://google.com"}]`
+	m := URLMap{}
+	err := m.UnmarshalJSON([]byte(jsonData))
+	require.NoError(t, err)
+	assert.Len(t, m, 2)
+	assert.Equal(t, "https://ya.ru", m["abc"].OriginalURL)
+	assert.Equal(t, "https://google.com", m["def"].OriginalURL)
+}
+
+func TestStorage_Ping(t *testing.T) {
+	s := &Storage{}
+	err := s.Ping(context.Background())
+	assert.NoError(t, err)
+}
+
+func TestStorage_NewStorage_And_Close(t *testing.T) {
+	filename := "test_storage_file.json"
+	defer func() { _ = os.Remove(filename) }()
+
+	s, err := NewStorage(filename)
+	require.NoError(t, err)
+	require.NotNil(t, s)
+
+	err = s.Close()
+	assert.NoError(t, err)
 }

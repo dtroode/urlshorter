@@ -10,18 +10,22 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/google/uuid"
+
 	"github.com/dtroode/urlshorter/internal/model"
 	"github.com/dtroode/urlshorter/internal/storage"
-	"github.com/google/uuid"
 )
 
+// File defines interface for file operations.
 type File interface {
 	io.WriteCloser
 	io.StringWriter
 }
 
+// URLMap represents a map of short keys to URL models.
 type URLMap map[string]*model.URL
 
+// UnmarshalJSON unmarshals JSON data into URLMap.
 func (m URLMap) UnmarshalJSON(d []byte) error {
 	urlSlice := make([]model.URL, 0)
 
@@ -37,6 +41,7 @@ func (m URLMap) UnmarshalJSON(d []byte) error {
 	return nil
 }
 
+// Storage represents in-memory storage implementation.
 type Storage struct {
 	urlmap  URLMap
 	mu      sync.RWMutex
@@ -44,10 +49,12 @@ type Storage struct {
 	encoder *json.Encoder
 }
 
+// Ping checks if the storage is available.
 func (s *Storage) Ping(ctx context.Context) error {
 	return nil
 }
 
+// NewStorage creates new in-memory storage instance.
 func NewStorage(filename string) (*Storage, error) {
 	readFile, err := os.OpenFile(filename, os.O_RDONLY|os.O_CREATE, 0600)
 	if err != nil {
@@ -82,10 +89,12 @@ func NewStorage(filename string) (*Storage, error) {
 	}, nil
 }
 
+// Close closes the storage and underlying file.
 func (s *Storage) Close() error {
 	return s.file.Close()
 }
 
+// GetURL retrieves a URL by its short key.
 func (s *Storage) GetURL(_ context.Context, shortKey string) (*model.URL, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -99,6 +108,7 @@ func (s *Storage) GetURL(_ context.Context, shortKey string) (*model.URL, error)
 	return val, nil
 }
 
+// GetURLs retrieves multiple URLs by their short keys.
 func (s *Storage) GetURLs(_ context.Context, shortKeys []string) ([]*model.URL, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -116,6 +126,7 @@ func (s *Storage) GetURLs(_ context.Context, shortKeys []string) ([]*model.URL, 
 	return urls, nil
 }
 
+// GetURLsByUserID retrieves all URLs created by a specific user.
 func (s *Storage) GetURLsByUserID(ctx context.Context, userID uuid.UUID) ([]*model.URL, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -131,15 +142,18 @@ func (s *Storage) GetURLsByUserID(ctx context.Context, userID uuid.UUID) ([]*mod
 	return urls, nil
 }
 
+// saveToFile saves a URL to the underlying file.
 func (s *Storage) saveToFile(_ context.Context, url *model.URL) error {
 	return s.encoder.Encode(url)
 }
 
+// saveToFileBatch saves multiple URLs to the underlying file.
 func (s *Storage) saveToFileBatch(_ context.Context, urls string) error {
 	_, err := s.file.WriteString(urls)
 	return err
 }
 
+// SetURL stores a single URL in the storage.
 func (s *Storage) SetURL(ctx context.Context, url *model.URL) (*model.URL, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -153,6 +167,7 @@ func (s *Storage) SetURL(ctx context.Context, url *model.URL) (*model.URL, error
 	return url, nil
 }
 
+// SetURLs stores multiple URLs in the storage.
 func (s *Storage) SetURLs(ctx context.Context, urls []*model.URL) ([]*model.URL, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -179,6 +194,7 @@ func (s *Storage) SetURLs(ctx context.Context, urls []*model.URL) ([]*model.URL,
 	return urls, nil
 }
 
+// DeleteURLs marks the specified URLs as deleted.
 func (s *Storage) DeleteURLs(_ context.Context, _ []uuid.UUID) error {
 	return nil
 }

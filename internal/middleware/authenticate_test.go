@@ -8,12 +8,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/dtroode/urlshorter/internal/auth"
-	"github.com/dtroode/urlshorter/internal/logger"
-	"github.com/dtroode/urlshorter/internal/middleware/mocks"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+
+	"github.com/dtroode/urlshorter/internal/auth"
+	"github.com/dtroode/urlshorter/internal/logger"
+	"github.com/dtroode/urlshorter/internal/middleware/mocks"
 )
 
 func TestAuthenticate_Handle(t *testing.T) {

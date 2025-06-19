@@ -5,23 +5,31 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/dtroode/urlshorter/database"
-	"github.com/dtroode/urlshorter/internal/model"
-	"github.com/dtroode/urlshorter/internal/storage"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/pgtype"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/dtroode/urlshorter/database"
+	"github.com/dtroode/urlshorter/internal/model"
+	"github.com/dtroode/urlshorter/internal/storage"
 )
 
+// Storage represents PostgreSQL storage implementation.
 type Storage struct {
 	db *pgxpool.Pool
 }
 
+// NewStorage creates new PostgreSQL storage instance.
 func NewStorage(dsn string) (*Storage, error) {
 	ctx := context.Background()
 
-	pool, err := pgxpool.New(ctx, dsn)
+	conf, err := pgxpool.ParseConfig(dsn)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse postgres dsn: %w", err)
+	}
+
+	pool, err := pgxpool.NewWithConfig(ctx, conf)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open connection pool: %w", err)
 	}
@@ -35,16 +43,19 @@ func NewStorage(dsn string) (*Storage, error) {
 	}, nil
 }
 
+// Close closes the storage and database connection pool.
 func (s *Storage) Close() error {
 	s.db.Close()
 
 	return nil
 }
 
+// Ping checks if the database is available.
 func (s *Storage) Ping(ctx context.Context) error {
 	return s.db.Ping(ctx)
 }
 
+// GetURL retrieves a URL by its short key.
 func (s *Storage) GetURL(ctx context.Context, shortKey string) (*model.URL, error) {
 	var url model.URL
 	query := `SELECT id, short_key, original_url, user_id, deleted_at FROM urls WHERE short_key = $1`
@@ -53,11 +64,13 @@ func (s *Storage) GetURL(ctx context.Context, shortKey string) (*model.URL, erro
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, storage.ErrNotFound
 		}
+		return nil, fmt.Errorf("failed to get url: %w", err)
 	}
 
 	return &url, nil
 }
 
+// GetURLs retrieves multiple URLs by their short keys.
 func (s *Storage) GetURLs(ctx context.Context, shortKeys []string) ([]*model.URL, error) {
 	query := `SELECT id, short_key, original_url, user_id, deleted_at FROM urls WHERE short_key = ANY ($1)`
 
@@ -84,8 +97,9 @@ func (s *Storage) GetURLs(ctx context.Context, shortKeys []string) ([]*model.URL
 	return urls, nil
 }
 
+// GetURLsByUserID retrieves all URLs created by a specific user.
 func (s *Storage) GetURLsByUserID(ctx context.Context, userID uuid.UUID) ([]*model.URL, error) {
-	query := `SELECT id, short_key, original_url, user_id, deleted_at FROM urls WHERE user_id = $1`
+	query := `SELECT id, short_key, original_url, user_id, deleted_at FROM urls WHERE user_id = $1 AND deleted_at IS NULL`
 	rows, err := s.db.Query(ctx, query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query rows: %w", err)
@@ -107,6 +121,7 @@ func (s *Storage) GetURLsByUserID(ctx context.Context, userID uuid.UUID) ([]*mod
 	return urls, nil
 }
 
+// SetURL stores a single URL in the storage.
 func (s *Storage) SetURL(ctx context.Context, url *model.URL) (*model.URL, error) {
 	var savedURL model.URL
 	query := `
@@ -131,6 +146,7 @@ func (s *Storage) SetURL(ctx context.Context, url *model.URL) (*model.URL, error
 	return &savedURL, err
 }
 
+// SetURLs stores multiple URLs in the storage.
 func (s *Storage) SetURLs(ctx context.Context, urls []*model.URL) (savedURLs []*model.URL, err error) {
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
@@ -169,6 +185,7 @@ func (s *Storage) SetURLs(ctx context.Context, urls []*model.URL) (savedURLs []*
 	return
 }
 
+// DeleteURLs marks the specified URLs as deleted.
 func (s *Storage) DeleteURLs(ctx context.Context, ids []uuid.UUID) error {
 	query := `UPDATE urls SET deleted_at = now() WHERE id = ANY($1)`
 	_, err := s.db.Exec(ctx, query, ids)

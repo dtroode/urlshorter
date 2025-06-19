@@ -9,32 +9,69 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/dtroode/urlshorter/internal/model"
 	"github.com/dtroode/urlshorter/internal/response"
 	"github.com/dtroode/urlshorter/internal/service/dto"
 	"github.com/dtroode/urlshorter/internal/service/workerpool"
 	"github.com/dtroode/urlshorter/internal/storage"
-	"github.com/google/uuid"
 )
 
 const deleteBatchSize = 10
 
+// URLStorage defines the interface for URL storage operations.
+// It provides methods for storing, retrieving, and managing URL entities.
 type URLStorage interface {
+	// GetURL retrieves a URL by its short key.
+	// Returns the URL model or an error if not found.
 	GetURL(ctx context.Context, shortKey string) (*model.URL, error)
+
+	// GetURLs retrieves multiple URLs by their short keys.
+	// Returns a slice of URL models or an error if retrieval fails.
 	GetURLs(ctx context.Context, shortKeys []string) ([]*model.URL, error)
+
+	// GetURLsByUserID retrieves all URLs created by a specific user.
+	// Returns a slice of URL models or an error if retrieval fails.
 	GetURLsByUserID(ctx context.Context, userID uuid.UUID) ([]*model.URL, error)
+
+	// SetURL stores a single URL in the storage.
+	// Returns the saved URL model or an error if storage fails.
 	SetURL(ctx context.Context, url *model.URL) (*model.URL, error)
+
+	// SetURLs stores multiple URLs in the storage.
+	// Returns a slice of saved URL models or an error if storage fails.
 	SetURLs(ctx context.Context, urls []*model.URL) (savedURLs []*model.URL, err error)
+
+	// DeleteURLs marks the specified URLs as deleted.
+	// Returns an error if deletion fails.
 	DeleteURLs(ctx context.Context, ids []uuid.UUID) error
 }
 
+// URL represents the URL shortening service.
+// It provides business logic for URL shortening operations including creation,
+// retrieval, and management of shortened URLs.
 type URL struct {
-	baseURL        string
+	// baseURL is the base URL for generating shortened URLs.
+	baseURL string
+	// shortKeyLength is the length of generated short keys.
 	shortKeyLength int
-	storage        URLStorage
-	pool           *workerpool.Pool
+	// storage is the storage interface for URL persistence.
+	storage URLStorage
+	// pool is the worker pool for background operations.
+	pool *workerpool.Pool
 }
 
+// NewURL creates a new URL service instance with the provided configuration.
+//
+// Parameters:
+//   - baseURL: The base URL for generating shortened URLs
+//   - shortKeyLength: The length of generated short keys
+//   - concurrencyLimit: The maximum number of concurrent workers
+//   - queueSize: The size of the worker pool queue
+//   - storage: The storage implementation for URL persistence
+//
+// Returns a pointer to the newly created URL service instance.
 func NewURL(
 	baseURL string,
 	shortKeyLength int,
@@ -58,6 +95,7 @@ func NewURL(
 func (s *URL) generateString() string {
 	var characters = []rune("ABCDEF0123456789")
 	var sb strings.Builder
+	sb.Grow(s.shortKeyLength)
 
 	for range s.shortKeyLength {
 		randomIndex := rand.Intn(len(characters))
@@ -68,6 +106,15 @@ func (s *URL) generateString() string {
 	return sb.String()
 }
 
+// GetOriginalURL retrieves the original URL associated with a short key.
+//
+// Parameters:
+//   - ctx: The request context
+//   - shortKey: The short key to look up
+//
+// Returns the original URL string or an error if not found or deleted.
+// Returns ErrNotFound if the URL doesn't exist.
+// Returns ErrGone if the URL has been deleted.
 func (s *URL) GetOriginalURL(ctx context.Context, shortKey string) (string, error) {
 	url, err := s.storage.GetURL(ctx, shortKey)
 	if err != nil {
@@ -84,6 +131,15 @@ func (s *URL) GetOriginalURL(ctx context.Context, shortKey string) (string, erro
 	return url.OriginalURL, nil
 }
 
+// CreateShortURL creates a new shortened URL from the provided DTO.
+// Generates a unique short key and stores the URL mapping.
+//
+// Parameters:
+//   - ctx: The request context
+//   - dto: The DTO containing the original URL and user ID
+//
+// Returns the shortened URL string or an error if creation fails.
+// Returns ErrConflict if the URL already exists.
 func (s *URL) CreateShortURL(ctx context.Context, dto *dto.CreateShortURL) (string, error) {
 	shortKey := s.generateString()
 	var responseError error
@@ -107,6 +163,14 @@ func (s *URL) CreateShortURL(ctx context.Context, dto *dto.CreateShortURL) (stri
 	return shortURL, responseError
 }
 
+// CreateShortURLBatch creates multiple shortened URLs in a single operation.
+// Processes all URLs in the batch and returns results with correlation IDs.
+//
+// Parameters:
+//   - ctx: The request context
+//   - dto: The DTO containing the batch of URLs to shorten
+//
+// Returns a slice of created URLs with their correlation IDs or an error if creation fails.
 func (s *URL) CreateShortURLBatch(ctx context.Context, dto *dto.CreateShortURLBatch) ([]*response.CreateShortURLBatch, error) {
 	resp := make([]*response.CreateShortURLBatch, 0)
 
@@ -145,6 +209,14 @@ func (s *URL) CreateShortURLBatch(ctx context.Context, dto *dto.CreateShortURLBa
 	return resp, nil
 }
 
+// GetUserURLs retrieves all URLs created by the specified user.
+//
+// Parameters:
+//   - ctx: The request context
+//   - userID: The UUID of the user whose URLs to retrieve
+//
+// Returns a slice of user URLs or an error if retrieval fails.
+// Returns ErrNoContent if the user has no URLs.
 func (s *URL) GetUserURLs(ctx context.Context, userID uuid.UUID) ([]*response.GetUserURL, error) {
 	urls, err := s.storage.GetURLsByUserID(ctx, userID)
 	if err != nil {
@@ -173,6 +245,15 @@ func (s *URL) GetUserURLs(ctx context.Context, userID uuid.UUID) ([]*response.Ge
 	return resp, nil
 }
 
+// DeleteURLs marks the specified URLs as deleted for the given user.
+// This operation is performed asynchronously using a worker pool.
+//
+// Parameters:
+//   - ctx: The request context
+//   - data: The DTO containing the short keys to delete and user ID
+//
+// Returns an error if the deletion request fails to be queued.
+// The actual deletion is performed asynchronously.
 func (s *URL) DeleteURLs(_ context.Context, data *dto.DeleteURLs) error {
 	go func() {
 		batches := splitIntoBatches(data.ShortKeys, deleteBatchSize)

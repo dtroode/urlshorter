@@ -12,6 +12,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/dtroode/urlshorter/internal/auth"
 	"github.com/dtroode/urlshorter/internal/handler/mocks"
 	"github.com/dtroode/urlshorter/internal/logger"
@@ -19,10 +24,6 @@ import (
 	"github.com/dtroode/urlshorter/internal/response"
 	"github.com/dtroode/urlshorter/internal/service"
 	"github.com/dtroode/urlshorter/internal/service/dto"
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 type failReader struct {
