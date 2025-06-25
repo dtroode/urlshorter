@@ -34,14 +34,14 @@ func main() {
 		urlStorage, err = postgres.NewStorage(dsn)
 		if err != nil {
 			logger.Error("failed to create database storage", "error", err)
-			os.Exit(1)
+			log.Fatal(err)
 		}
 		logger.Debug("using database storage")
 	} else {
 		urlStorage, err = inmemory.NewStorage(config.FileStoragePath)
 		if err != nil {
 			logger.Error("failed to create inmemory storage", "error", err, "file", config.FileStoragePath)
-			os.Exit(1)
+			log.Fatal(err)
 		}
 		logger.Debug("using inmemory storage")
 	}
@@ -62,7 +62,7 @@ func main() {
 		err = http.ListenAndServe(config.RunAddr, r)
 		if err != nil {
 			logger.Error("error running server", "error", err)
-			os.Exit(1)
+			log.Fatal(err)
 		}
 	}()
 
