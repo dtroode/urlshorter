@@ -29,7 +29,7 @@ func Initialize() (*Config, error) {
 	flag.StringVar(&config.BaseURL, "b", "http://localhost:8080", "base url which goes before short url id")
 	flag.IntVar(&config.ShortKeyLength, "u", 8, "short key length")
 	flag.StringVar(&config.LogLevel, "l", "INFO", "log level")
-	flag.StringVar(&config.FileStoragePath, "f", fmt.Sprintf(os.TempDir(), "urls"), "path to file where to store urls")
+	flag.StringVar(&config.FileStoragePath, "f", fmt.Sprintf("%s/urls", os.TempDir()), "path to file where to store urls")
 	flag.StringVar(&config.DatabaseDSN, "d", "", "string for connecting to postgres")
 	flag.StringVar(&config.JWTSecretKey, "j", "a-string-secret-at-least-256-bits-long", "key to sign jwt")
 	flag.IntVar(&config.ConcurrencyLimit, "cl", 3, "number of workers in url service worker pool")

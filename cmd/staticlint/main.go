@@ -1,3 +1,5 @@
+//go:build tools
+
 // Package main provides a static code analyzer for Go projects.
 //
 // This package combines several types of analyzers:
