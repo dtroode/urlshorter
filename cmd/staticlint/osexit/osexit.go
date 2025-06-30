@@ -34,6 +34,8 @@ import (
 	"golang.org/x/tools/go/analysis"
 )
 
+// OsExitAnalyzer is a structure that sets up custom analyzer.
+// It specifies name, documentation and function to run.
 var OsExitAnalyzer = &analysis.Analyzer{
 	Name: "osexit",
 	Doc:  "check for os.Exit() in func main() of package main",
