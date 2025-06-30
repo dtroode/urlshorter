@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -15,6 +16,12 @@ import (
 	"github.com/dtroode/urlshorter/internal/storage"
 	"github.com/dtroode/urlshorter/internal/storage/inmemory"
 	"github.com/dtroode/urlshorter/internal/storage/postgres"
+)
+
+var (
+	buildVersion string
+	buildDate    string
+	buildCommit  string
 )
 
 func main() {
@@ -58,14 +65,43 @@ func main() {
 	r.RegisterHealthRoutes(healthService, logger)
 
 	go func() {
-		logger.Info("server started", "address", config.RunAddr)
 		err = http.ListenAndServe(config.RunAddr, r)
 		if err != nil {
 			logger.Error("error running server", "error", err)
 			log.Fatal(err)
 		}
+
 	}()
+
+	logger.Info("server started", "address", config.RunAddr)
+	logAppVersion()
 
 	<-sigChan
 	logger.Info("received interruption signal, exitting")
+}
+
+func logAppVersion() {
+	var (
+		bv = buildVersion
+		bd = buildDate
+		bc = buildCommit
+	)
+
+	tmpl := `
+Build version: %s
+Build date: %s
+Build commit: %s
+`
+
+	if bv == "" {
+		bv = "N/A"
+	}
+	if bd == "" {
+		bd = "N/A"
+	}
+	if bc == "" {
+		bc = "N/A"
+	}
+
+	fmt.Printf(tmpl, bv, bd, bc)
 }
