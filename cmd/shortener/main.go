@@ -19,9 +19,9 @@ import (
 )
 
 var (
-	buildVersion string
-	buildDate    string
-	buildCommit  string
+	buildVersion = "N/A" // set by ldflags
+	buildDate    = "N/A" // set by ldflags
+	buildCommit  = "N/A" // set by ldflags
 )
 
 func main() {
@@ -40,15 +40,13 @@ func main() {
 	if dsn != "" {
 		urlStorage, err = postgres.NewStorage(dsn)
 		if err != nil {
-			logger.Error("failed to create database storage", "error", err)
-			log.Fatal(err)
+			logger.Fatal("failed to create database storage", "error", err)
 		}
 		logger.Debug("using database storage")
 	} else {
 		urlStorage, err = inmemory.NewStorage(config.FileStoragePath)
 		if err != nil {
-			logger.Error("failed to create inmemory storage", "error", err, "file", config.FileStoragePath)
-			log.Fatal(err)
+			logger.Fatal("failed to create inmemory storage", "error", err, "file", config.FileStoragePath)
 		}
 		logger.Debug("using inmemory storage")
 	}
@@ -67,8 +65,7 @@ func main() {
 	go func() {
 		err = http.ListenAndServe(config.RunAddr, r)
 		if err != nil {
-			logger.Error("error running server", "error", err)
-			log.Fatal(err)
+			logger.Fatal("error running server", "error", err)
 		}
 
 	}()
@@ -81,27 +78,11 @@ func main() {
 }
 
 func logAppVersion() {
-	var (
-		bv = buildVersion
-		bd = buildDate
-		bc = buildCommit
-	)
-
 	tmpl := `
 Build version: %s
 Build date: %s
 Build commit: %s
 `
 
-	if bv == "" {
-		bv = "N/A"
-	}
-	if bd == "" {
-		bd = "N/A"
-	}
-	if bc == "" {
-		bc = "N/A"
-	}
-
-	fmt.Printf(tmpl, bv, bd, bc)
+	fmt.Printf(tmpl, buildVersion, buildDate, buildCommit)
 }

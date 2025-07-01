@@ -16,3 +16,8 @@ func NewLog(level string) *Logger {
 		Logger: slog.New(slog.NewJSONHandler(os.Stdout, nil)),
 	}
 }
+
+func (l *Logger) Fatal(msg string, args ...any) {
+	l.Logger.Error(msg, args...)
+	os.Exit(1)
+}
