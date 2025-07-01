@@ -17,6 +17,7 @@ func NewLog(level string) *Logger {
 	}
 }
 
+// Fatal is equivalent to [Error] followed by a call to [os.Exit](1).
 func (l *Logger) Fatal(msg string, args ...any) {
 	l.Logger.Error(msg, args...)
 	os.Exit(1)
