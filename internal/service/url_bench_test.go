@@ -197,7 +197,7 @@ func BenchmarkGenerateStringAllocs(b *testing.B) {
 }
 
 func BenchmarkURL_CreateShortURLBatch(b *testing.B) {
-	batchSizes := []int{10, 100, 1000, 10000}
+	batchSizes := []int{10, 20, 100}
 	ctx := context.Background()
 	userID := uuid.New()
 	storage := mocks.NewURLStorage(b)
@@ -238,7 +238,7 @@ func BenchmarkURL_CreateShortURLBatch(b *testing.B) {
 }
 
 func BenchmarkURL_DeleteURLs(b *testing.B) {
-	batchSizes := []int{5, 10, 20}
+	batchSizes := []int{5, 10}
 	urlsCount := 30
 	ctx := context.Background()
 	userID := uuid.New()

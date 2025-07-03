@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -15,6 +16,12 @@ import (
 	"github.com/dtroode/urlshorter/internal/storage"
 	"github.com/dtroode/urlshorter/internal/storage/inmemory"
 	"github.com/dtroode/urlshorter/internal/storage/postgres"
+)
+
+var (
+	buildVersion = "N/A" // set by ldflags
+	buildDate    = "N/A" // set by ldflags
+	buildCommit  = "N/A" // set by ldflags
 )
 
 func main() {
@@ -33,15 +40,13 @@ func main() {
 	if dsn != "" {
 		urlStorage, err = postgres.NewStorage(dsn)
 		if err != nil {
-			logger.Error("failed to create database storage", "error", err)
-			os.Exit(1)
+			logger.Fatal("failed to create database storage", "error", err)
 		}
 		logger.Debug("using database storage")
 	} else {
 		urlStorage, err = inmemory.NewStorage(config.FileStoragePath)
 		if err != nil {
-			logger.Error("failed to create inmemory storage", "error", err, "file", config.FileStoragePath)
-			os.Exit(1)
+			logger.Fatal("failed to create inmemory storage", "error", err, "file", config.FileStoragePath)
 		}
 		logger.Debug("using inmemory storage")
 	}
@@ -58,14 +63,26 @@ func main() {
 	r.RegisterHealthRoutes(healthService, logger)
 
 	go func() {
-		logger.Info("server started", "address", config.RunAddr)
 		err = http.ListenAndServe(config.RunAddr, r)
 		if err != nil {
-			logger.Error("error running server", "error", err)
-			os.Exit(1)
+			logger.Fatal("error running server", "error", err)
 		}
+
 	}()
+
+	logger.Info("server started", "address", config.RunAddr)
+	logAppVersion()
 
 	<-sigChan
 	logger.Info("received interruption signal, exitting")
+}
+
+func logAppVersion() {
+	tmpl := `
+Build version: %s
+Build date: %s
+Build commit: %s
+`
+
+	fmt.Printf(tmpl, buildVersion, buildDate, buildCommit)
 }
