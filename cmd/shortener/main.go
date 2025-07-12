@@ -63,14 +63,19 @@ func main() {
 	r.RegisterHealthRoutes(healthService, logger)
 
 	go func() {
-		err = http.ListenAndServe(config.RunAddr, r)
+		var err error
+
+		if config.EnableHTTPS {
+			err = http.ListenAndServeTLS(config.RunAddr, config.CertFileName, config.PrivateKeyFileName, r)
+		} else {
+			err = http.ListenAndServe(config.RunAddr, r)
+		}
 		if err != nil {
 			logger.Fatal("error running server", "error", err)
 		}
-
 	}()
 
-	logger.Info("server started", "address", config.RunAddr)
+	logger.Info("server started", "address", config.RunAddr, "tls", config.EnableHTTPS)
 	logAppVersion()
 
 	<-sigChan
