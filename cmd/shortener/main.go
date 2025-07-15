@@ -52,7 +52,11 @@ func main() {
 		}
 		logger.Debug("using inmemory storage")
 	}
-	defer urlStorage.Close()
+	defer func() {
+		if err := urlStorage.Close(); err != nil {
+			logger.Error("failed to close storage", "error", err)
+		}
+	}()
 
 	urlService := service.NewURL(config.BaseURL, config.ShortKeyLength, config.ConcurrencyLimit, config.QueueSize, urlStorage)
 	healthService := service.NewHealth(urlStorage)
