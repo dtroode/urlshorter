@@ -10,15 +10,18 @@ import (
 
 // Config contains application configuration parameters.
 type Config struct {
-	RunAddr          string `env:"SERVER_ADDRESS"`
-	BaseURL          string `env:"BASE_URL"`
-	ShortKeyLength   int    `env:"SHORT_URL_LENGTH"`
-	LogLevel         string `env:"LOG_LEVEL"`
-	FileStoragePath  string `env:"FILE_STORAGE_PATH"`
-	DatabaseDSN      string `env:"DATABASE_DSN"`
-	JWTSecretKey     string `env:"JWT_SECRET_KEY"`
-	ConcurrencyLimit int    `env:"CONCURRENCY_LIMIT"`
-	QueueSize        int    `env:"QUEUE_SIZE"`
+	RunAddr            string `env:"SERVER_ADDRESS"`
+	BaseURL            string `env:"BASE_URL"`
+	ShortKeyLength     int    `env:"SHORT_URL_LENGTH"`
+	LogLevel           string `env:"LOG_LEVEL"`
+	FileStoragePath    string `env:"FILE_STORAGE_PATH"`
+	DatabaseDSN        string `env:"DATABASE_DSN"`
+	JWTSecretKey       string `env:"JWT_SECRET_KEY"`
+	ConcurrencyLimit   int    `env:"CONCURRENCY_LIMIT"`
+	QueueSize          int    `env:"QUEUE_SIZE"`
+	EnableHTTPS        bool   `env:"ENABLE_HTTPS"`
+	CertFileName       string `env:"CERT_FILE_NAME"`
+	PrivateKeyFileName string `env:"PRIVATE_KEY_FILE_NAME"`
 }
 
 // Initialize creates and initializes application configuration.
@@ -34,6 +37,9 @@ func Initialize() (*Config, error) {
 	flag.StringVar(&config.JWTSecretKey, "j", "a-string-secret-at-least-256-bits-long", "key to sign jwt")
 	flag.IntVar(&config.ConcurrencyLimit, "cl", 3, "number of workers in url service worker pool")
 	flag.IntVar(&config.QueueSize, "q", 0, "worker pool jobs queue size, if not passed, will be set based on concurrency limit")
+	flag.BoolVar(&config.EnableHTTPS, "s", false, "should server serve https")
+	flag.StringVar(&config.CertFileName, "sc", "", "cert file name")
+	flag.StringVar(&config.PrivateKeyFileName, "sp", "", "private key file name")
 
 	flag.Parse()
 
