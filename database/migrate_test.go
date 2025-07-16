@@ -1,3 +1,5 @@
+//go:build integration
+
 package database_test
 
 import (
@@ -13,14 +15,7 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-const skipIntegrationTests = true
-
 func TestMigrate(t *testing.T) {
-	if skipIntegrationTests {
-		t.Skip("Skipping migration tests as configured.")
-		return
-	}
-
 	ctx := context.Background()
 	c, err := runPostgresContainer(ctx)
 	if err != nil {

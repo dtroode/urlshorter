@@ -1,3 +1,5 @@
+//go:build integration
+
 package postgres_test
 
 import (
@@ -16,16 +18,9 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-const skipIntegrationTests = true
-
 var dsn string
 
 func TestMain(m *testing.M) {
-	if skipIntegrationTests {
-		log.Println("Skipping postgres storage integration tests as configured.")
-		return
-	}
-
 	ctx := context.Background()
 	c, err := runPostgresContainer(ctx)
 	if err != nil {
