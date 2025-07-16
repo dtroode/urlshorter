@@ -41,8 +41,7 @@ func TestLogger_Fatal(t *testing.T) {
 
 	var logEntry map[string]interface{}
 	err = json.Unmarshal([]byte(output), &logEntry)
-	if err == nil {
-		assert.Equal(t, "ERROR", logEntry["level"])
-		assert.Equal(t, "test message", logEntry["msg"])
-	}
+	require.NoError(t, err)
+	assert.Equal(t, "ERROR", logEntry["level"])
+	assert.Equal(t, "test message", logEntry["msg"])
 }

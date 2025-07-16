@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/caarlos0/env/v6"
@@ -73,7 +74,7 @@ func parseFlagsForConfigFile() string {
 
 	tempFlagSet.Parse(os.Args[1:])
 
-	if envConfigFile, set := os.LookupEnv("CONFIG"); set {
+	if envConfigFile, ok := os.LookupEnv("CONFIG"); ok {
 		configFile = envConfigFile
 	}
 
@@ -107,7 +108,11 @@ func parseConfigFromFile(config *Config, filename string) error {
 	if err != nil {
 		return fmt.Errorf("failed to open file %s for reading: %w", filename, err)
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			log.Printf("failed to close file %s: %v", filename, err)
+		}
+	}()
 
 	if err := json.NewDecoder(file).Decode(config); err != nil {
 		return fmt.Errorf("failed to decode config file: %w", err)
