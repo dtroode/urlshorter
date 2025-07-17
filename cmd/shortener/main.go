@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/dtroode/urlshorter/config"
 	"github.com/dtroode/urlshorter/internal/auth"
@@ -25,8 +27,8 @@ var (
 )
 
 func main() {
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, os.Interrupt)
+	defer stop()
 
 	config, err := config.Initialize()
 	if err != nil {
@@ -50,7 +52,11 @@ func main() {
 		}
 		logger.Debug("using inmemory storage")
 	}
-	defer urlStorage.Close()
+	defer func() {
+		if err := urlStorage.Close(); err != nil {
+			logger.Error("failed to close storage", "error", err)
+		}
+	}()
 
 	urlService := service.NewURL(config.BaseURL, config.ShortKeyLength, config.ConcurrencyLimit, config.QueueSize, urlStorage)
 	healthService := service.NewHealth(urlStorage)
@@ -62,19 +68,39 @@ func main() {
 	r.RegisterAPIRoutes(urlService, jwt, logger)
 	r.RegisterHealthRoutes(healthService, logger)
 
+	server := &http.Server{
+		Addr:         config.RunAddr,
+		Handler:      r,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
 	go func() {
-		err = http.ListenAndServe(config.RunAddr, r)
-		if err != nil {
+		var err error
+
+		if config.EnableHTTPS {
+			err = server.ListenAndServeTLS(config.CertFileName, config.PrivateKeyFileName)
+		} else {
+			err = server.ListenAndServe()
+		}
+		if err != nil && err != http.ErrServerClosed {
 			logger.Fatal("error running server", "error", err)
 		}
-
 	}()
 
-	logger.Info("server started", "address", config.RunAddr)
+	logger.Info("server started", "address", config.RunAddr, "tls", config.EnableHTTPS)
 	logAppVersion()
 
-	<-sigChan
-	logger.Info("received interruption signal, exitting")
+	<-ctx.Done()
+	logger.Info("received interruption signal, shutting down")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		logger.Error("error during server shutdown", "error", err)
+	}
 }
 
 func logAppVersion() {
