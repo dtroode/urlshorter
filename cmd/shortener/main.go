@@ -67,6 +67,9 @@ func main() {
 	r.RegisterProfiler()
 	r.RegisterAPIRoutes(urlService, jwt, logger)
 	r.RegisterHealthRoutes(healthService, logger)
+	if err := r.RegisterInternalRoutes(urlService, logger, config.TrustedSubnet); err != nil {
+		logger.Fatal("failed to register internal routes", "error", err)
+	}
 
 	server := &http.Server{
 		Addr:         config.RunAddr,

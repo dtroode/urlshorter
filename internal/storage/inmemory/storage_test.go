@@ -344,3 +344,28 @@ func TestStorage_NewStorage_And_Close(t *testing.T) {
 	err = s.Close()
 	assert.NoError(t, err)
 }
+
+func TestStorage_Count(t *testing.T) {
+	userID1 := uuid.New()
+	userID2 := uuid.New()
+	s := Storage{
+		urlmap: URLMap{
+			"key1": {ID: uuid.New(), ShortKey: "countkey1", OriginalURL: "https://count1.com", UserID: userID1},
+			"key2": {ID: uuid.New(), ShortKey: "countkey2", OriginalURL: "https://count2.com", UserID: userID1},
+			"key3": {ID: uuid.New(), ShortKey: "countkey3", OriginalURL: "https://count3.com", UserID: userID2},
+			"key4": {ID: uuid.New(), ShortKey: "countkey4", OriginalURL: "https://count4.com"},
+		},
+	}
+
+	t.Run("count urls", func(t *testing.T) {
+		count, err := s.CountURLs(context.Background())
+		require.NoError(t, err)
+		assert.Equal(t, int64(4), count)
+	})
+
+	t.Run("count users", func(t *testing.T) {
+		count, err := s.CountUsers(context.Background())
+		require.NoError(t, err)
+		assert.Equal(t, int64(2), count)
+	})
+}

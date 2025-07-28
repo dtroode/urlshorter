@@ -198,3 +198,26 @@ func (s *Storage) SetURLs(ctx context.Context, urls []*model.URL) ([]*model.URL,
 func (s *Storage) DeleteURLs(_ context.Context, _ []uuid.UUID) error {
 	return nil
 }
+
+// CountURLs returns the total number of URLs in the storage.
+func (s *Storage) CountURLs(ctx context.Context) (int64, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return int64(len(s.urlmap)), nil
+}
+
+// CountUsers returns the total number of unique users in the storage.
+func (s *Storage) CountUsers(ctx context.Context) (int64, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	users := make(map[uuid.UUID]struct{})
+	for _, url := range s.urlmap {
+		if url.UserID != uuid.Nil {
+			users[url.UserID] = struct{}{}
+		}
+	}
+
+	return int64(len(users)), nil
+}

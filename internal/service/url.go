@@ -46,6 +46,12 @@ type URLStorage interface {
 	// DeleteURLs marks the specified URLs as deleted.
 	// Returns an error if deletion fails.
 	DeleteURLs(ctx context.Context, ids []uuid.UUID) error
+
+	// CountURLs returns the total number of URLs.
+	CountURLs(ctx context.Context) (int64, error)
+
+	// CountUsers returns the total number of users.
+	CountUsers(ctx context.Context) (int64, error)
 }
 
 // URL represents the URL shortening service.
@@ -243,6 +249,30 @@ func (s *URL) GetUserURLs(ctx context.Context, userID uuid.UUID) ([]*response.Ge
 	}
 
 	return resp, nil
+}
+
+// GetStats retrieves statistics about the service.
+// It returns the total number of URLs and unique users.
+//
+// Parameters:
+//   - ctx: The request context
+//
+// Returns a GetStats response containing the counts or an error if retrieval fails.
+func (s *URL) GetStats(ctx context.Context) (response.GetStats, error) {
+	urlsCount, err := s.storage.CountURLs(ctx)
+	if err != nil {
+		return response.GetStats{}, fmt.Errorf("failed to count urls: %w", err)
+	}
+
+	usersCount, err := s.storage.CountUsers(ctx)
+	if err != nil {
+		return response.GetStats{}, fmt.Errorf("failed to count users: %w", err)
+	}
+
+	return response.GetStats{
+		URLs:  urlsCount,
+		Users: usersCount,
+	}, nil
 }
 
 // DeleteURLs marks the specified URLs as deleted for the given user.

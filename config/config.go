@@ -24,6 +24,7 @@ type Config struct {
 	EnableHTTPS        bool   `env:"ENABLE_HTTPS" json:"enable_https"`
 	CertFileName       string `env:"CERT_FILE_NAME" json:"cert_file_name"`
 	PrivateKeyFileName string `env:"PRIVATE_KEY_FILE_NAME" json:"private_key_file_name"`
+	TrustedSubnet      string `env:"TRUSTED_SUBNET" json:"trusted_subnet"`
 }
 
 func (c *Config) setDefaults() {
@@ -39,6 +40,7 @@ func (c *Config) setDefaults() {
 	c.EnableHTTPS = false
 	c.CertFileName = ""
 	c.PrivateKeyFileName = ""
+	c.TrustedSubnet = ""
 }
 
 // Initialize creates and initializes application configuration.
@@ -98,6 +100,7 @@ func parseCommandLineFlags(config *Config) error {
 	flagSet.BoolVar(&config.EnableHTTPS, "s", config.EnableHTTPS, "should server serve https")
 	flagSet.StringVar(&config.CertFileName, "sc", config.CertFileName, "cert file name")
 	flagSet.StringVar(&config.PrivateKeyFileName, "sp", config.PrivateKeyFileName, "private key file name")
+	flagSet.StringVar(&config.TrustedSubnet, "t", config.TrustedSubnet, "trusted subnet for internal api")
 
 	return flagSet.Parse(os.Args[1:])
 }

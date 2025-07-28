@@ -195,3 +195,25 @@ func (s *Storage) DeleteURLs(ctx context.Context, ids []uuid.UUID) error {
 
 	return nil
 }
+
+// CountURLs returns the total number of URLs in the storage.
+func (s *Storage) CountURLs(ctx context.Context) (int64, error) {
+	var count int64
+	query := `SELECT COUNT(*) FROM urls`
+	if err := s.db.QueryRow(ctx, query).Scan(&count); err != nil {
+		return 0, fmt.Errorf("failed to count urls: %w", err)
+	}
+
+	return count, nil
+}
+
+// CountUsers returns the total number of unique users in the storage.
+func (s *Storage) CountUsers(ctx context.Context) (int64, error) {
+	var count int64
+	query := `SELECT COUNT(DISTINCT user_id) FROM urls`
+	if err := s.db.QueryRow(ctx, query).Scan(&count); err != nil {
+		return 0, fmt.Errorf("failed to count urls: %w", err)
+	}
+
+	return count, nil
+}

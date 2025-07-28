@@ -1,6 +1,8 @@
 package router
 
 import (
+	"fmt"
+
 	"github.com/go-chi/chi/v5"
 
 	"github.com/dtroode/urlshorter/internal/handler"
@@ -70,4 +72,18 @@ func (r *Router) RegisterHealthRoutes(s *service.Health, l *logger.Logger) {
 	h := handler.NewHealth(s, l)
 
 	r.With(loggerMiddleware).Get("/ping", h.Ping)
+}
+
+// RegisterInternalRoutes registers internal API routes.
+func (r *Router) RegisterInternalRoutes(s *service.URL, l *logger.Logger, cidr string) error {
+	loggerMiddleware := middleware.NewRequestLog(l).Handle
+	checkIPMiddleware, err := middleware.NewCheckIP(cidr)
+	if err != nil {
+		return fmt.Errorf("failed to register check ip middleware")
+	}
+	h := handler.NewInternal(s, l)
+
+	r.With(loggerMiddleware).With(checkIPMiddleware.Handle).Get("/api/internal/stats", h.GetStats)
+
+	return nil
 }

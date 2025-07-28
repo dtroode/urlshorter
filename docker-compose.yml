@@ -15,6 +15,7 @@ services:
       - JWT_SECRET_KEY=a-string-secret-at-least-256-bits-long
       - CONCURRENCY_LIMIT=50
       - QUEUE_SIZE=150
+      - TRUSTED_SUBNET=127.0.0.0/24
     depends_on:
       db:
         condition: service_healthy

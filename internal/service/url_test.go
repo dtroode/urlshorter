@@ -551,3 +551,23 @@ func TestURL_DeleteURLs(t *testing.T) {
 		urlStorage.AssertExpectations(t)
 	})
 }
+
+func TestURL_GetStats(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	urlStorage := mocks.NewURLStorage(t)
+	urlStorage.On("CountURLs", ctx).Return(int64(10), nil)
+	urlStorage.On("CountUsers", ctx).Return(int64(5), nil)
+
+	service := NewURL("base", 3, 3, 15, urlStorage)
+
+	stats, err := service.GetStats(ctx)
+	require.NoError(t, err)
+
+	assert.Equal(t, int64(10), stats.URLs)
+	assert.Equal(t, int64(5), stats.Users)
+
+	urlStorage.AssertExpectations(t)
+}

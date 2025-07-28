@@ -46,6 +46,28 @@ func TestRouter_RegisterHealthRoutes(t *testing.T) {
 	})
 }
 
+func TestRouter_RegisterInternalRoutes(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		router := NewRouter()
+		mockStorage := mocks.NewURLStorage(t)
+		urlService := service.NewURL("http://localhost:8080", 8, 3, 0, mockStorage)
+		logger := &logger.Logger{Logger: slog.New(slog.NewJSONHandler(io.Discard, nil))}
+
+		err := router.RegisterInternalRoutes(urlService, logger, "192.168.1.0/24")
+		assert.NoError(t, err)
+	})
+
+	t.Run("invalid cidr", func(t *testing.T) {
+		router := NewRouter()
+		mockStorage := mocks.NewURLStorage(t)
+		urlService := service.NewURL("http://localhost:8080", 8, 3, 0, mockStorage)
+		logger := &logger.Logger{Logger: slog.New(slog.NewJSONHandler(io.Discard, nil))}
+
+		err := router.RegisterInternalRoutes(urlService, logger, "invalid-cidr")
+		assert.Error(t, err)
+	})
+}
+
 func TestRouter_CompleteSetup(t *testing.T) {
 	router := NewRouter()
 	mockStorage := mocks.NewURLStorage(t)
