@@ -14,17 +14,17 @@ import (
 type Config struct {
 	RunAddr            string `env:"SERVER_ADDRESS" json:"server_address"`
 	BaseURL            string `env:"BASE_URL" json:"base_url"`
-	ShortKeyLength     int    `env:"SHORT_URL_LENGTH" json:"short_url_length"`
 	LogLevel           string `env:"LOG_LEVEL" json:"log_level"`
 	FileStoragePath    string `env:"FILE_STORAGE_PATH" json:"file_storage_path"`
 	DatabaseDSN        string `env:"DATABASE_DSN" json:"database_dsn"`
 	JWTSecretKey       string `env:"JWT_SECRET_KEY" json:"jwt_secret_key"`
-	ConcurrencyLimit   int    `env:"CONCURRENCY_LIMIT" json:"concurrency_limit"`
-	QueueSize          int    `env:"QUEUE_SIZE" json:"queue_size"`
-	EnableHTTPS        bool   `env:"ENABLE_HTTPS" json:"enable_https"`
 	CertFileName       string `env:"CERT_FILE_NAME" json:"cert_file_name"`
 	PrivateKeyFileName string `env:"PRIVATE_KEY_FILE_NAME" json:"private_key_file_name"`
 	TrustedSubnet      string `env:"TRUSTED_SUBNET" json:"trusted_subnet"`
+	ShortKeyLength     int    `env:"SHORT_URL_LENGTH" json:"short_url_length"`
+	ConcurrencyLimit   int    `env:"CONCURRENCY_LIMIT" json:"concurrency_limit"`
+	QueueSize          int    `env:"QUEUE_SIZE" json:"queue_size"`
+	EnableHTTPS        bool   `env:"ENABLE_HTTPS" json:"enable_https"`
 }
 
 func (c *Config) setDefaults() {
@@ -74,7 +74,7 @@ func parseFlagsForConfigFile() string {
 	tempFlagSet := flag.NewFlagSet("temp", flag.ContinueOnError)
 	tempFlagSet.StringVar(&configFile, "c", "", "config file name")
 
-	tempFlagSet.Parse(os.Args[1:])
+	_ = tempFlagSet.Parse(os.Args[1:])
 
 	if envConfigFile, ok := os.LookupEnv("CONFIG"); ok {
 		configFile = envConfigFile

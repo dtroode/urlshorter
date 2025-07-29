@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/dtroode/urlshorter/internal/model"
-	"github.com/dtroode/urlshorter/internal/storage"
 )
 
 func TestStorage_GetURL(t *testing.T) {
@@ -33,7 +32,7 @@ func TestStorage_GetURL(t *testing.T) {
 				},
 			},
 			id:            "id2",
-			expectedError: storage.ErrNotFound,
+			expectedError: model.ErrNotFound,
 		},
 		"url found": {
 			urlmap: URLMap{

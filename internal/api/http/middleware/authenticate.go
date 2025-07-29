@@ -63,8 +63,8 @@ func (m *Authenticate) Handle(h http.Handler) http.Handler {
 			if errors.Is(err, http.ErrNoCookie) {
 				userID := uuid.New()
 				m.setCookie(ctx, w, userID)
-				ctx := auth.SetUserIDToContext(r.Context(), userID)
-				h.ServeHTTP(w, r.WithContext(ctx))
+				newCtx := auth.SetUserIDToContext(r.Context(), userID)
+				h.ServeHTTP(w, r.WithContext(newCtx))
 			} else {
 				m.logger.Error("failed to get cookie", "error", err)
 				w.WriteHeader(http.StatusInternalServerError)
@@ -77,10 +77,10 @@ func (m *Authenticate) Handle(h http.Handler) http.Handler {
 
 		userID, err := m.token.GetUserID(ctx, tokenString)
 		if err != nil {
-			userID := uuid.New()
-			m.setCookie(ctx, w, userID)
-			ctx := auth.SetUserIDToContext(r.Context(), userID)
-			h.ServeHTTP(w, r.WithContext(ctx))
+			newUserID := uuid.New()
+			m.setCookie(ctx, w, newUserID)
+			newCtx := auth.SetUserIDToContext(r.Context(), newUserID)
+			h.ServeHTTP(w, r.WithContext(newCtx))
 
 			return
 		}

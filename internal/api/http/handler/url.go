@@ -10,12 +10,11 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
+	"github.com/dtroode/urlshorter/internal/api/http/request"
+	"github.com/dtroode/urlshorter/internal/api/http/response"
 	"github.com/dtroode/urlshorter/internal/auth"
 	"github.com/dtroode/urlshorter/internal/logger"
-	"github.com/dtroode/urlshorter/internal/request"
-	"github.com/dtroode/urlshorter/internal/response"
-	"github.com/dtroode/urlshorter/internal/service"
-	"github.com/dtroode/urlshorter/internal/service/dto"
+	"github.com/dtroode/urlshorter/internal/model"
 )
 
 // URLService defines the interface for URL shortening operations.
@@ -27,19 +26,19 @@ type URLService interface {
 
 	// GetUserURLs retrieves all URLs created by a specific user.
 	// Returns a slice of user URLs or an error if the operation fails.
-	GetUserURLs(ctx context.Context, userID uuid.UUID) ([]*response.GetUserURL, error)
+	GetUserURLs(ctx context.Context, userID uuid.UUID) ([]model.GetUserURL, error)
 
 	// CreateShortURL creates a new shortened URL.
 	// Returns the shortened URL string or an error if creation fails.
-	CreateShortURL(ctx context.Context, dto *dto.CreateShortURL) (string, error)
+	CreateShortURL(ctx context.Context, params model.CreateShortURLParams) (string, error)
 
 	// CreateShortURLBatch creates multiple shortened URLs in a single operation.
 	// Returns a slice of created URLs with their correlation IDs or an error if creation fails.
-	CreateShortURLBatch(ctx context.Context, dto *dto.CreateShortURLBatch) ([]*response.CreateShortURLBatch, error)
+	CreateShortURLBatch(ctx context.Context, params model.CreateShortURLBatchParams) ([]model.CreateShortURLBatch, error)
 
 	// DeleteURLs marks the specified URLs as deleted for the given user.
 	// Returns an error if the deletion operation fails.
-	DeleteURLs(ctx context.Context, dto *dto.DeleteURLs) error
+	DeleteURLs(ctx context.Context, params model.DeleteURLsParams) error
 }
 
 // URL represents the URL shortening HTTP handler.
@@ -82,12 +81,12 @@ func (h *URL) GetOriginalURL(w http.ResponseWriter, r *http.Request) {
 
 	originalURL, err := h.service.GetOriginalURL(ctx, id)
 	if err != nil {
-		if errors.Is(err, service.ErrNotFound) {
+		if errors.Is(err, model.ErrNotFound) {
 			w.WriteHeader(http.StatusNotFound)
 
 			return
 		}
-		if errors.Is(err, service.ErrGone) {
+		if errors.Is(err, model.ErrGone) {
 			w.WriteHeader(http.StatusGone)
 
 			return
@@ -133,9 +132,12 @@ func (h *URL) CreateShortURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	url := string(body)
-	dto := dto.NewCreateShortURL(url, userID)
-	shortURL, err := h.service.CreateShortURL(ctx, dto)
-	if err != nil && !errors.Is(err, service.ErrConflict) {
+	shortURL, err := h.service.CreateShortURL(ctx,
+		model.CreateShortURLParams{
+			UserID:      userID,
+			OriginalURL: url,
+		})
+	if err != nil && !errors.Is(err, model.ErrConflict) {
 		h.logger.Error("service error", "error", err)
 		w.WriteHeader(http.StatusInternalServerError)
 
@@ -144,13 +146,15 @@ func (h *URL) CreateShortURL(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("content-type", "text/plain")
 
-	if errors.Is(err, service.ErrConflict) {
+	if errors.Is(err, model.ErrConflict) {
 		w.WriteHeader(http.StatusConflict)
 	} else {
 		w.WriteHeader(http.StatusCreated)
 	}
 
-	w.Write([]byte(shortURL))
+	if _, err := w.Write([]byte(shortURL)); err != nil {
+		h.logger.Error("failed to write response", "error", err)
+	}
 }
 
 // CreateShortURLJSON handles POST requests to create a shortened URL from JSON.
@@ -184,9 +188,11 @@ func (h *URL) CreateShortURLJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dto := dto.NewCreateShortURL(request.URL, userID)
-	shortURL, err := h.service.CreateShortURL(ctx, dto)
-	if err != nil && !errors.Is(err, service.ErrConflict) {
+	shortURL, err := h.service.CreateShortURL(ctx, model.CreateShortURLParams{
+		UserID:      userID,
+		OriginalURL: request.URL,
+	})
+	if err != nil && !errors.Is(err, model.ErrConflict) {
 		h.logger.Error("service error", "error", err)
 		w.WriteHeader(http.StatusInternalServerError)
 
@@ -194,7 +200,7 @@ func (h *URL) CreateShortURLJSON(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("content-type", "application/json")
-	if errors.Is(err, service.ErrConflict) {
+	if errors.Is(err, model.ErrConflict) {
 		w.WriteHeader(http.StatusConflict)
 	} else {
 		w.WriteHeader(http.StatusCreated)
@@ -233,7 +239,7 @@ func (h *URL) CreateShortURLBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	request := []*request.CreateShortURLBatch{}
+	request := []request.CreateShortURLBatch{}
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		h.logger.Info("failed to decode request")
 		w.WriteHeader(http.StatusBadRequest)
@@ -247,8 +253,18 @@ func (h *URL) CreateShortURLBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dto := dto.NewCreateShortURLBatch(request, userID)
-	shortURLs, err := h.service.CreateShortURLBatch(ctx, dto)
+	urls := make([]model.URLWithCorrelation, 0, len(request))
+	for _, url := range request {
+		urls = append(urls, model.URLWithCorrelation{
+			CorrelationID: url.CorrelationID,
+			OriginalURL:   url.OriginalURL,
+		})
+	}
+
+	shortURLs, err := h.service.CreateShortURLBatch(ctx, model.CreateShortURLBatchParams{
+		UserID: userID,
+		URLs:   urls,
+	})
 	if err != nil {
 		h.logger.Error("service error", "error", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -256,10 +272,18 @@ func (h *URL) CreateShortURLBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	resp := make([]response.CreateShortURLBatch, 0, len(shortURLs))
+	for _, url := range shortURLs {
+		resp = append(resp, response.CreateShortURLBatch{
+			CorrelationID: url.CorrelationID,
+			ShortURL:      url.ShortURL,
+		})
+	}
+
 	w.Header().Set("content-type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
-	if err := json.NewEncoder(w).Encode(shortURLs); err != nil {
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		h.logger.Error("failed to encode response", "error", err)
 		w.WriteHeader(http.StatusInternalServerError)
 
@@ -290,7 +314,7 @@ func (h *URL) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 
 	userURLs, err := h.service.GetUserURLs(ctx, userID)
 	if err != nil {
-		if errors.Is(err, service.ErrNoContent) {
+		if errors.Is(err, model.ErrNoContent) {
 			w.WriteHeader(http.StatusNoContent)
 
 			return
@@ -302,10 +326,18 @@ func (h *URL) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	resp := make([]response.GetUserURL, 0, len(userURLs))
+	for _, url := range userURLs {
+		resp = append(resp, response.GetUserURL{
+			OriginalURL: url.OriginalURL,
+			ShortURL:    url.ShortURL,
+		})
+	}
+
 	w.Header().Set("content-type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	if err := json.NewEncoder(w).Encode(userURLs); err != nil {
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		h.logger.Error("failed to encode response", "error", err)
 		w.WriteHeader(http.StatusInternalServerError)
 
@@ -343,8 +375,10 @@ func (h *URL) DeleteURLs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dto := dto.NewDeleteURLs(shortKeys, userID)
-	if err := h.service.DeleteURLs(ctx, dto); err != nil {
+	if err := h.service.DeleteURLs(ctx, model.DeleteURLsParams{
+		UserID:    userID,
+		ShortKeys: shortKeys,
+	}); err != nil {
 		h.logger.Error("failed to delete urls", "error", err)
 		w.WriteHeader(http.StatusInternalServerError)
 

@@ -15,9 +15,9 @@ type Result struct {
 // Job represents a job to be executed by the worker pool.
 type Job struct {
 	Ctx     context.Context
-	Timeout time.Duration
 	Fn      func(ctx context.Context) (any, error)
 	ResCh   chan *Result
+	Timeout time.Duration
 }
 
 // Pool represents a worker pool for executing jobs.

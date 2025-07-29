@@ -5,9 +5,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/dtroode/urlshorter/internal/handler"
+	"github.com/dtroode/urlshorter/internal/api/http/handler"
+	"github.com/dtroode/urlshorter/internal/api/http/middleware"
 	"github.com/dtroode/urlshorter/internal/logger"
-	"github.com/dtroode/urlshorter/internal/middleware"
 	"github.com/dtroode/urlshorter/internal/service"
 
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"

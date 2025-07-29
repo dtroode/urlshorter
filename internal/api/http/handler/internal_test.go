@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -11,32 +10,31 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 
 	"github.com/dtroode/urlshorter/internal/logger"
-	"github.com/dtroode/urlshorter/internal/response"
+	"github.com/dtroode/urlshorter/internal/model"
 )
 
 type MockStatsService struct {
 	mock.Mock
 }
 
-func (m *MockStatsService) GetStats(ctx context.Context) (response.GetStats, error) {
+func (m *MockStatsService) GetStats(ctx context.Context) (model.GetStats, error) {
 	args := m.Called(ctx)
-	return args.Get(0).(response.GetStats), args.Error(1)
+	return args.Get(0).(model.GetStats), args.Error(1)
 }
 
 func TestInternal_GetStats(t *testing.T) {
 	tests := []struct {
 		name           string
-		serviceStats   response.GetStats
+		serviceStats   model.GetStats
 		serviceErr     error
 		expectedStatus int
 		expectedBody   string
 	}{
 		{
 			name: "success",
-			serviceStats: response.GetStats{
+			serviceStats: model.GetStats{
 				URLs:  10,
 				Users: 5,
 			},
@@ -46,7 +44,7 @@ func TestInternal_GetStats(t *testing.T) {
 		},
 		{
 			name:           "service error",
-			serviceStats:   response.GetStats{},
+			serviceStats:   model.GetStats{},
 			serviceErr:     errors.New("service error"),
 			expectedStatus: http.StatusInternalServerError,
 			expectedBody:   "",
@@ -72,9 +70,7 @@ func TestInternal_GetStats(t *testing.T) {
 			assert.Equal(t, tt.expectedStatus, w.Code)
 			if tt.expectedBody != "" {
 				assert.Equal(t, "application/json", w.Header().Get("Content-Type"))
-				body, err := json.Marshal(tt.serviceStats)
-				require.NoError(t, err)
-				assert.JSONEq(t, string(body), w.Body.String())
+				assert.JSONEq(t, tt.expectedBody, w.Body.String())
 			}
 			mockService.AssertExpectations(t)
 		})

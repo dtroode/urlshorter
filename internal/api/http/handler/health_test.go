@@ -10,7 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/dtroode/urlshorter/internal/handler/mocks"
+	"github.com/dtroode/urlshorter/internal/api/http/handler/mocks"
 	"github.com/dtroode/urlshorter/internal/logger"
 )
 

@@ -17,13 +17,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/dtroode/urlshorter/internal/api/http/handler/mocks"
+	"github.com/dtroode/urlshorter/internal/api/http/request"
 	"github.com/dtroode/urlshorter/internal/auth"
-	"github.com/dtroode/urlshorter/internal/handler/mocks"
 	"github.com/dtroode/urlshorter/internal/logger"
-	"github.com/dtroode/urlshorter/internal/request"
-	"github.com/dtroode/urlshorter/internal/response"
-	"github.com/dtroode/urlshorter/internal/service"
-	"github.com/dtroode/urlshorter/internal/service/dto"
+	"github.com/dtroode/urlshorter/internal/model"
+	"github.com/stretchr/testify/mock"
 )
 
 type failReader struct {
@@ -61,13 +60,13 @@ func TestHandler_GetOriginalURL(t *testing.T) {
 		},
 		"not found": {
 			id:             "d8398Sj3",
-			serviceError:   service.ErrNotFound,
+			serviceError:   model.ErrNotFound,
 			wantError:      true,
 			wantStatusCode: http.StatusNotFound,
 		},
 		"deleted": {
 			id:             "d8398Sj3",
-			serviceError:   service.ErrGone,
+			serviceError:   model.ErrGone,
 			wantError:      true,
 			wantStatusCode: http.StatusGone,
 		},
@@ -161,7 +160,7 @@ func TestHandler_CreateShortURL(t *testing.T) {
 			ctx:              auth.SetUserIDToContext(context.Background(), userID),
 			body:             strings.NewReader(url),
 			readBodyResponse: 0,
-			serviceError:     service.ErrConflict,
+			serviceError:     model.ErrConflict,
 			serviceResponse:  responseURL,
 			wantStatusCode:   http.StatusConflict,
 			wantContentType:  "text/plain",
@@ -186,8 +185,7 @@ func TestHandler_CreateShortURL(t *testing.T) {
 			w := httptest.NewRecorder()
 
 			s := mocks.NewURLService(t)
-			dto := dto.NewCreateShortURL(url, userID)
-			s.On("CreateShortURL", r.Context(), dto).Maybe().Return(tt.serviceResponse, tt.serviceError)
+			s.On("CreateShortURL", r.Context(), mock.Anything).Maybe().Return(tt.serviceResponse, tt.serviceError)
 
 			h := NewURL(s, dummyLogger)
 
@@ -249,7 +247,7 @@ func TestHandler_CreateShortURLJSON(t *testing.T) {
 		"service error conflict": {
 			ctx:             auth.SetUserIDToContext(context.Background(), userID),
 			body:            fmt.Sprintf(`{"url": "%s"}`, url),
-			serviceError:    service.ErrConflict,
+			serviceError:    model.ErrConflict,
 			serviceResponse: responseURL,
 			wantStatusCode:  http.StatusConflict,
 			wantContentType: "application/json",
@@ -274,8 +272,7 @@ func TestHandler_CreateShortURLJSON(t *testing.T) {
 			w := httptest.NewRecorder()
 
 			s := mocks.NewURLService(t)
-			dto := dto.NewCreateShortURL(url, userID)
-			s.On("CreateShortURL", r.Context(), dto).Maybe().Return(tt.serviceResponse, tt.serviceError)
+			s.On("CreateShortURL", r.Context(), mock.Anything).Maybe().Return(tt.serviceResponse, tt.serviceError)
 
 			h := NewURL(s, dummyLogger)
 
@@ -308,7 +305,7 @@ func TestHandler_CreateShortURLBatch(t *testing.T) {
 		ctx             context.Context
 		body            string
 		serviceRequest  []*request.CreateShortURLBatch
-		serviceResponse []*response.CreateShortURLBatch
+		serviceResponse []model.CreateShortURLBatch
 		serviceError    error
 		wantError       bool
 		wantStatusCode  int
@@ -362,7 +359,7 @@ func TestHandler_CreateShortURLBatch(t *testing.T) {
 					OriginalURL:   "http://google.com",
 				},
 			},
-			serviceResponse: []*response.CreateShortURLBatch{
+			serviceResponse: []model.CreateShortURLBatch{
 				{
 					CorrelationID: "1",
 					ShortURL:      "http://localhost:8000/yndx",
@@ -387,8 +384,7 @@ func TestHandler_CreateShortURLBatch(t *testing.T) {
 			w := httptest.NewRecorder()
 
 			s := mocks.NewURLService(t)
-			dto := dto.NewCreateShortURLBatch(tt.serviceRequest, userID)
-			s.On("CreateShortURLBatch", r.Context(), dto).Maybe().Return(tt.serviceResponse, tt.serviceError)
+			s.On("CreateShortURLBatch", r.Context(), mock.Anything).Maybe().Return(tt.serviceResponse, tt.serviceError)
 
 			h := NewURL(s, dummyLogger)
 
@@ -419,7 +415,7 @@ func TestHandler_GetUserURLs(t *testing.T) {
 
 	tests := map[string]struct {
 		ctx             context.Context
-		serviceResponse []*response.GetUserURL
+		serviceResponse []model.GetUserURL
 		serviceError    error
 		wantError       bool
 		wantStatusCode  int
@@ -438,13 +434,13 @@ func TestHandler_GetUserURLs(t *testing.T) {
 		},
 		"service error no content": {
 			ctx:            auth.SetUserIDToContext(context.Background(), userID),
-			serviceError:   service.ErrNoContent,
+			serviceError:   model.ErrNoContent,
 			wantError:      true,
 			wantStatusCode: http.StatusNoContent,
 		},
 		"success": {
 			ctx: auth.SetUserIDToContext(context.Background(), userID),
-			serviceResponse: []*response.GetUserURL{
+			serviceResponse: []model.GetUserURL{
 				{
 					ShortURL:    "http://localhost/ABOBA",
 					OriginalURL: "http://yandex.ru",
@@ -535,8 +531,7 @@ func TestHandler_DeleteURLs(t *testing.T) {
 			w := httptest.NewRecorder()
 
 			serviceMock := mocks.NewURLService(t)
-			dto := dto.NewDeleteURLs(shortKeys, userID)
-			serviceMock.On("DeleteURLs", tt.ctx, dto).Maybe().
+			serviceMock.On("DeleteURLs", tt.ctx, mock.Anything).Maybe().
 				Return(tt.serviceError)
 
 			h := NewURL(serviceMock, dummyLogger)

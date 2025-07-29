@@ -15,11 +15,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
 
+	"github.com/dtroode/urlshorter/internal/api/http/handler/mocks"
+	"github.com/dtroode/urlshorter/internal/api/http/request"
 	"github.com/dtroode/urlshorter/internal/auth"
-	"github.com/dtroode/urlshorter/internal/handler/mocks"
 	"github.com/dtroode/urlshorter/internal/logger"
-	"github.com/dtroode/urlshorter/internal/request"
-	"github.com/dtroode/urlshorter/internal/response"
+	"github.com/dtroode/urlshorter/internal/model"
 )
 
 // ExampleURL_GetOriginalURL demonstrates how to handle a GET request to retrieve the original URL.
@@ -58,7 +58,7 @@ func ExampleURL_CreateShortURL() {
 	service := mocks.NewURLService(&testing.T{})
 
 	userID := uuid.New()
-	service.On("CreateShortURL", mock.Anything, mock.AnythingOfType("*dto.CreateShortURL")).Return("https://shortener.example.com/abc123", nil)
+	service.On("CreateShortURL", mock.Anything, mock.Anything).Return("https://shortener.example.com/abc123", nil)
 
 	logger := &logger.Logger{}
 
@@ -93,7 +93,7 @@ func ExampleURL_CreateShortURLJSON() {
 	service := mocks.NewURLService(&testing.T{})
 
 	userID := uuid.New()
-	service.On("CreateShortURL", mock.Anything, mock.AnythingOfType("*dto.CreateShortURL")).Return("https://shortener.example.com/abc123", nil)
+	service.On("CreateShortURL", mock.Anything, mock.Anything).Return("https://shortener.example.com/abc123", nil)
 
 	logger := &logger.Logger{}
 
@@ -135,7 +135,7 @@ func ExampleURL_CreateShortURLBatch() {
 	service := mocks.NewURLService(&testing.T{})
 
 	userID := uuid.New()
-	expectedResponse := []*response.CreateShortURLBatch{
+	expectedResponse := []model.CreateShortURLBatch{
 		{
 			CorrelationID: "req-123",
 			ShortURL:      "https://shortener.example.com/abc123",
@@ -145,13 +145,13 @@ func ExampleURL_CreateShortURLBatch() {
 			ShortURL:      "https://shortener.example.com/def456",
 		},
 	}
-	service.On("CreateShortURLBatch", mock.Anything, mock.AnythingOfType("*dto.CreateShortURLBatch")).Return(expectedResponse, nil)
+	service.On("CreateShortURLBatch", mock.Anything, mock.AnythingOfType("model.CreateShortURLBatchParams")).Return(expectedResponse, nil)
 
 	logger := &logger.Logger{}
 
 	handler := NewURL(service, logger)
 
-	requestBody := []*request.CreateShortURLBatch{
+	requestBody := []request.CreateShortURLBatch{
 		{
 			CorrelationID: "req-123",
 			OriginalURL:   "https://example.com/very-long-url-path-1",
@@ -194,7 +194,7 @@ func ExampleURL_GetUserURLs() {
 	service := mocks.NewURLService(&testing.T{})
 
 	userID := uuid.New()
-	expectedResponse := []*response.GetUserURL{
+	expectedResponse := []model.GetUserURL{
 		{
 			ShortURL:    "https://shortener.example.com/abc123",
 			OriginalURL: "https://example.com/very-long-url-path-1",
@@ -238,7 +238,7 @@ func ExampleURL_DeleteURLs() {
 	service := mocks.NewURLService(&testing.T{})
 
 	userID := uuid.New()
-	service.On("DeleteURLs", mock.Anything, mock.AnythingOfType("*dto.DeleteURLs")).Return(nil)
+	service.On("DeleteURLs", mock.Anything, mock.AnythingOfType("model.DeleteURLsParams")).Return(nil)
 
 	logger := &logger.Logger{}
 

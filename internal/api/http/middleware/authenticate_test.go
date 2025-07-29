@@ -12,9 +12,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
+	"github.com/dtroode/urlshorter/internal/api/http/middleware/mocks"
 	"github.com/dtroode/urlshorter/internal/auth"
 	"github.com/dtroode/urlshorter/internal/logger"
-	"github.com/dtroode/urlshorter/internal/middleware/mocks"
 )
 
 func TestAuthenticate_Handle(t *testing.T) {

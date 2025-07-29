@@ -26,6 +26,7 @@ func parseCIDR(cidr string) (*subnet, error) {
 	}, nil
 }
 
+// Contains checks if the given IP is in the subnet.
 func (s *subnet) Contains(ip net.IP) bool {
 	if s.subnet == nil {
 		return false
@@ -34,10 +35,12 @@ func (s *subnet) Contains(ip net.IP) bool {
 	return s.subnet.Contains(ip)
 }
 
+// CheckIP is a middleware that checks if the request's IP is in a trusted subnet.
 type CheckIP struct {
 	subnet *subnet
 }
 
+// NewCheckIP creates a new CheckIP middleware.
 func NewCheckIP(cidr string) (*CheckIP, error) {
 	subnet, err := parseCIDR(cidr)
 	if err != nil {
@@ -49,6 +52,7 @@ func NewCheckIP(cidr string) (*CheckIP, error) {
 	}, nil
 }
 
+// Handle is a middleware that checks if the request's IP is in a trusted subnet.
 func (m *CheckIP) Handle(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ip, err := resolveIP(r, resolveIPOpts{UseHeader: true})

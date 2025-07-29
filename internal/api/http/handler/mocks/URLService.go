@@ -5,11 +5,9 @@ package mocks
 import (
 	context "context"
 
-	dto "github.com/dtroode/urlshorter/internal/service/dto"
-
 	mock "github.com/stretchr/testify/mock"
 
-	response "github.com/dtroode/urlshorter/internal/response"
+	model "github.com/dtroode/urlshorter/internal/model"
 
 	uuid "github.com/google/uuid"
 )
@@ -27,9 +25,9 @@ func (_m *URLService) EXPECT() *URLService_Expecter {
 	return &URLService_Expecter{mock: &_m.Mock}
 }
 
-// CreateShortURL provides a mock function with given fields: ctx, _a1
-func (_m *URLService) CreateShortURL(ctx context.Context, _a1 *dto.CreateShortURL) (string, error) {
-	ret := _m.Called(ctx, _a1)
+// CreateShortURL provides a mock function with given fields: ctx, params
+func (_m *URLService) CreateShortURL(ctx context.Context, params model.CreateShortURLParams) (string, error) {
+	ret := _m.Called(ctx, params)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CreateShortURL")
@@ -37,17 +35,17 @@ func (_m *URLService) CreateShortURL(ctx context.Context, _a1 *dto.CreateShortUR
 
 	var r0 string
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, *dto.CreateShortURL) (string, error)); ok {
-		return rf(ctx, _a1)
+	if rf, ok := ret.Get(0).(func(context.Context, model.CreateShortURLParams) (string, error)); ok {
+		return rf(ctx, params)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, *dto.CreateShortURL) string); ok {
-		r0 = rf(ctx, _a1)
+	if rf, ok := ret.Get(0).(func(context.Context, model.CreateShortURLParams) string); ok {
+		r0 = rf(ctx, params)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, *dto.CreateShortURL) error); ok {
-		r1 = rf(ctx, _a1)
+	if rf, ok := ret.Get(1).(func(context.Context, model.CreateShortURLParams) error); ok {
+		r1 = rf(ctx, params)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -62,14 +60,14 @@ type URLService_CreateShortURL_Call struct {
 
 // CreateShortURL is a helper method to define mock.On call
 //   - ctx context.Context
-//   - _a1 *dto.CreateShortURL
-func (_e *URLService_Expecter) CreateShortURL(ctx interface{}, _a1 interface{}) *URLService_CreateShortURL_Call {
-	return &URLService_CreateShortURL_Call{Call: _e.mock.On("CreateShortURL", ctx, _a1)}
+//   - params model.CreateShortURLParams
+func (_e *URLService_Expecter) CreateShortURL(ctx interface{}, params interface{}) *URLService_CreateShortURL_Call {
+	return &URLService_CreateShortURL_Call{Call: _e.mock.On("CreateShortURL", ctx, params)}
 }
 
-func (_c *URLService_CreateShortURL_Call) Run(run func(ctx context.Context, _a1 *dto.CreateShortURL)) *URLService_CreateShortURL_Call {
+func (_c *URLService_CreateShortURL_Call) Run(run func(ctx context.Context, params model.CreateShortURLParams)) *URLService_CreateShortURL_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*dto.CreateShortURL))
+		run(args[0].(context.Context), args[1].(model.CreateShortURLParams))
 	})
 	return _c
 }
@@ -79,34 +77,34 @@ func (_c *URLService_CreateShortURL_Call) Return(_a0 string, _a1 error) *URLServ
 	return _c
 }
 
-func (_c *URLService_CreateShortURL_Call) RunAndReturn(run func(context.Context, *dto.CreateShortURL) (string, error)) *URLService_CreateShortURL_Call {
+func (_c *URLService_CreateShortURL_Call) RunAndReturn(run func(context.Context, model.CreateShortURLParams) (string, error)) *URLService_CreateShortURL_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// CreateShortURLBatch provides a mock function with given fields: ctx, _a1
-func (_m *URLService) CreateShortURLBatch(ctx context.Context, _a1 *dto.CreateShortURLBatch) ([]*response.CreateShortURLBatch, error) {
-	ret := _m.Called(ctx, _a1)
+// CreateShortURLBatch provides a mock function with given fields: ctx, params
+func (_m *URLService) CreateShortURLBatch(ctx context.Context, params model.CreateShortURLBatchParams) ([]model.CreateShortURLBatch, error) {
+	ret := _m.Called(ctx, params)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CreateShortURLBatch")
 	}
 
-	var r0 []*response.CreateShortURLBatch
+	var r0 []model.CreateShortURLBatch
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, *dto.CreateShortURLBatch) ([]*response.CreateShortURLBatch, error)); ok {
-		return rf(ctx, _a1)
+	if rf, ok := ret.Get(0).(func(context.Context, model.CreateShortURLBatchParams) ([]model.CreateShortURLBatch, error)); ok {
+		return rf(ctx, params)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, *dto.CreateShortURLBatch) []*response.CreateShortURLBatch); ok {
-		r0 = rf(ctx, _a1)
+	if rf, ok := ret.Get(0).(func(context.Context, model.CreateShortURLBatchParams) []model.CreateShortURLBatch); ok {
+		r0 = rf(ctx, params)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*response.CreateShortURLBatch)
+			r0 = ret.Get(0).([]model.CreateShortURLBatch)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, *dto.CreateShortURLBatch) error); ok {
-		r1 = rf(ctx, _a1)
+	if rf, ok := ret.Get(1).(func(context.Context, model.CreateShortURLBatchParams) error); ok {
+		r1 = rf(ctx, params)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -121,39 +119,39 @@ type URLService_CreateShortURLBatch_Call struct {
 
 // CreateShortURLBatch is a helper method to define mock.On call
 //   - ctx context.Context
-//   - _a1 *dto.CreateShortURLBatch
-func (_e *URLService_Expecter) CreateShortURLBatch(ctx interface{}, _a1 interface{}) *URLService_CreateShortURLBatch_Call {
-	return &URLService_CreateShortURLBatch_Call{Call: _e.mock.On("CreateShortURLBatch", ctx, _a1)}
+//   - params model.CreateShortURLBatchParams
+func (_e *URLService_Expecter) CreateShortURLBatch(ctx interface{}, params interface{}) *URLService_CreateShortURLBatch_Call {
+	return &URLService_CreateShortURLBatch_Call{Call: _e.mock.On("CreateShortURLBatch", ctx, params)}
 }
 
-func (_c *URLService_CreateShortURLBatch_Call) Run(run func(ctx context.Context, _a1 *dto.CreateShortURLBatch)) *URLService_CreateShortURLBatch_Call {
+func (_c *URLService_CreateShortURLBatch_Call) Run(run func(ctx context.Context, params model.CreateShortURLBatchParams)) *URLService_CreateShortURLBatch_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*dto.CreateShortURLBatch))
+		run(args[0].(context.Context), args[1].(model.CreateShortURLBatchParams))
 	})
 	return _c
 }
 
-func (_c *URLService_CreateShortURLBatch_Call) Return(_a0 []*response.CreateShortURLBatch, _a1 error) *URLService_CreateShortURLBatch_Call {
+func (_c *URLService_CreateShortURLBatch_Call) Return(_a0 []model.CreateShortURLBatch, _a1 error) *URLService_CreateShortURLBatch_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *URLService_CreateShortURLBatch_Call) RunAndReturn(run func(context.Context, *dto.CreateShortURLBatch) ([]*response.CreateShortURLBatch, error)) *URLService_CreateShortURLBatch_Call {
+func (_c *URLService_CreateShortURLBatch_Call) RunAndReturn(run func(context.Context, model.CreateShortURLBatchParams) ([]model.CreateShortURLBatch, error)) *URLService_CreateShortURLBatch_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// DeleteURLs provides a mock function with given fields: ctx, _a1
-func (_m *URLService) DeleteURLs(ctx context.Context, _a1 *dto.DeleteURLs) error {
-	ret := _m.Called(ctx, _a1)
+// DeleteURLs provides a mock function with given fields: ctx, params
+func (_m *URLService) DeleteURLs(ctx context.Context, params model.DeleteURLsParams) error {
+	ret := _m.Called(ctx, params)
 
 	if len(ret) == 0 {
 		panic("no return value specified for DeleteURLs")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *dto.DeleteURLs) error); ok {
-		r0 = rf(ctx, _a1)
+	if rf, ok := ret.Get(0).(func(context.Context, model.DeleteURLsParams) error); ok {
+		r0 = rf(ctx, params)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -168,14 +166,14 @@ type URLService_DeleteURLs_Call struct {
 
 // DeleteURLs is a helper method to define mock.On call
 //   - ctx context.Context
-//   - _a1 *dto.DeleteURLs
-func (_e *URLService_Expecter) DeleteURLs(ctx interface{}, _a1 interface{}) *URLService_DeleteURLs_Call {
-	return &URLService_DeleteURLs_Call{Call: _e.mock.On("DeleteURLs", ctx, _a1)}
+//   - params model.DeleteURLsParams
+func (_e *URLService_Expecter) DeleteURLs(ctx interface{}, params interface{}) *URLService_DeleteURLs_Call {
+	return &URLService_DeleteURLs_Call{Call: _e.mock.On("DeleteURLs", ctx, params)}
 }
 
-func (_c *URLService_DeleteURLs_Call) Run(run func(ctx context.Context, _a1 *dto.DeleteURLs)) *URLService_DeleteURLs_Call {
+func (_c *URLService_DeleteURLs_Call) Run(run func(ctx context.Context, params model.DeleteURLsParams)) *URLService_DeleteURLs_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*dto.DeleteURLs))
+		run(args[0].(context.Context), args[1].(model.DeleteURLsParams))
 	})
 	return _c
 }
@@ -185,7 +183,7 @@ func (_c *URLService_DeleteURLs_Call) Return(_a0 error) *URLService_DeleteURLs_C
 	return _c
 }
 
-func (_c *URLService_DeleteURLs_Call) RunAndReturn(run func(context.Context, *dto.DeleteURLs) error) *URLService_DeleteURLs_Call {
+func (_c *URLService_DeleteURLs_Call) RunAndReturn(run func(context.Context, model.DeleteURLsParams) error) *URLService_DeleteURLs_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -248,23 +246,23 @@ func (_c *URLService_GetOriginalURL_Call) RunAndReturn(run func(context.Context,
 }
 
 // GetUserURLs provides a mock function with given fields: ctx, userID
-func (_m *URLService) GetUserURLs(ctx context.Context, userID uuid.UUID) ([]*response.GetUserURL, error) {
+func (_m *URLService) GetUserURLs(ctx context.Context, userID uuid.UUID) ([]model.GetUserURL, error) {
 	ret := _m.Called(ctx, userID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetUserURLs")
 	}
 
-	var r0 []*response.GetUserURL
+	var r0 []model.GetUserURL
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) ([]*response.GetUserURL, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) ([]model.GetUserURL, error)); ok {
 		return rf(ctx, userID)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) []*response.GetUserURL); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) []model.GetUserURL); ok {
 		r0 = rf(ctx, userID)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*response.GetUserURL)
+			r0 = ret.Get(0).([]model.GetUserURL)
 		}
 	}
 
@@ -296,12 +294,12 @@ func (_c *URLService_GetUserURLs_Call) Run(run func(ctx context.Context, userID 
 	return _c
 }
 
-func (_c *URLService_GetUserURLs_Call) Return(_a0 []*response.GetUserURL, _a1 error) *URLService_GetUserURLs_Call {
+func (_c *URLService_GetUserURLs_Call) Return(_a0 []model.GetUserURL, _a1 error) *URLService_GetUserURLs_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *URLService_GetUserURLs_Call) RunAndReturn(run func(context.Context, uuid.UUID) ([]*response.GetUserURL, error)) *URLService_GetUserURLs_Call {
+func (_c *URLService_GetUserURLs_Call) RunAndReturn(run func(context.Context, uuid.UUID) ([]model.GetUserURL, error)) *URLService_GetUserURLs_Call {
 	_c.Call.Return(run)
 	return _c
 }

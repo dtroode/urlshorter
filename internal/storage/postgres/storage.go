@@ -12,7 +12,6 @@ import (
 
 	"github.com/dtroode/urlshorter/database"
 	"github.com/dtroode/urlshorter/internal/model"
-	"github.com/dtroode/urlshorter/internal/storage"
 )
 
 // Storage represents PostgreSQL storage implementation.
@@ -62,7 +61,7 @@ func (s *Storage) GetURL(ctx context.Context, shortKey string) (*model.URL, erro
 	err := s.db.QueryRow(ctx, query, shortKey).Scan(&url.ID, &url.ShortKey, &url.OriginalURL, &url.UserID, &url.DeletedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, storage.ErrNotFound
+			return nil, model.ErrNotFound
 		}
 		return nil, fmt.Errorf("failed to get url: %w", err)
 	}
@@ -140,7 +139,7 @@ func (s *Storage) SetURL(ctx context.Context, url *model.URL) (*model.URL, error
 	}
 
 	if url.ID != savedURL.ID {
-		err = storage.ErrConflict
+		err = model.ErrConflict
 	}
 
 	return &savedURL, err

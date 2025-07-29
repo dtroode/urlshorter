@@ -12,10 +12,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/dtroode/urlshorter/internal/model"
-	"github.com/dtroode/urlshorter/internal/response"
-	"github.com/dtroode/urlshorter/internal/service/dto"
 	"github.com/dtroode/urlshorter/internal/service/workerpool"
-	"github.com/dtroode/urlshorter/internal/storage"
 )
 
 const deleteBatchSize = 10
@@ -58,14 +55,14 @@ type URLStorage interface {
 // It provides business logic for URL shortening operations including creation,
 // retrieval, and management of shortened URLs.
 type URL struct {
-	// baseURL is the base URL for generating shortened URLs.
-	baseURL string
-	// shortKeyLength is the length of generated short keys.
-	shortKeyLength int
 	// storage is the storage interface for URL persistence.
 	storage URLStorage
 	// pool is the worker pool for background operations.
 	pool *workerpool.Pool
+	// baseURL is the base URL for generating shortened URLs.
+	baseURL string
+	// shortKeyLength is the length of generated short keys.
+	shortKeyLength int
 }
 
 // NewURL creates a new URL service instance with the provided configuration.
@@ -124,14 +121,14 @@ func (s *URL) generateString() string {
 func (s *URL) GetOriginalURL(ctx context.Context, shortKey string) (string, error) {
 	url, err := s.storage.GetURL(ctx, shortKey)
 	if err != nil {
-		if errors.Is(err, storage.ErrNotFound) {
-			return "", ErrNotFound
+		if errors.Is(err, model.ErrNotFound) {
+			return "", model.ErrNotFound
 		}
 		return "", fmt.Errorf("failed to get original URL: %w", err)
 	}
 
 	if url.DeletedAt != nil {
-		return "", ErrGone
+		return "", model.ErrGone
 	}
 
 	return url.OriginalURL, nil
@@ -146,24 +143,24 @@ func (s *URL) GetOriginalURL(ctx context.Context, shortKey string) (string, erro
 //
 // Returns the shortened URL string or an error if creation fails.
 // Returns ErrConflict if the URL already exists.
-func (s *URL) CreateShortURL(ctx context.Context, dto *dto.CreateShortURL) (string, error) {
+func (s *URL) CreateShortURL(ctx context.Context, params model.CreateShortURLParams) (string, error) {
 	shortKey := s.generateString()
 	var responseError error
 
-	urlModel := model.NewURL(shortKey, dto.OriginalURL, dto.UserID)
+	urlModel := model.NewURL(shortKey, params.OriginalURL, params.UserID)
 	savedURL, err := s.storage.SetURL(ctx, urlModel)
-	if err != nil && !errors.Is(err, storage.ErrConflict) {
+	if err != nil && !errors.Is(err, model.ErrConflict) {
 		return "", fmt.Errorf("failed to set URL: %w", err)
 	}
 	shortKey = savedURL.ShortKey
 
-	if errors.Is(err, storage.ErrConflict) {
-		responseError = ErrConflict
+	if errors.Is(err, model.ErrConflict) {
+		responseError = model.ErrConflict
 	}
 
 	shortURL, joinErr := url.JoinPath(s.baseURL, shortKey)
 	if joinErr != nil {
-		return "", ErrInternal
+		return "", model.ErrInternal
 	}
 
 	return shortURL, responseError
@@ -177,15 +174,15 @@ func (s *URL) CreateShortURL(ctx context.Context, dto *dto.CreateShortURL) (stri
 //   - dto: The DTO containing the batch of URLs to shorten
 //
 // Returns a slice of created URLs with their correlation IDs or an error if creation fails.
-func (s *URL) CreateShortURLBatch(ctx context.Context, dto *dto.CreateShortURLBatch) ([]*response.CreateShortURLBatch, error) {
-	resp := make([]*response.CreateShortURLBatch, 0)
+func (s *URL) CreateShortURLBatch(ctx context.Context, params model.CreateShortURLBatchParams) ([]model.CreateShortURLBatch, error) {
+	resp := make([]model.CreateShortURLBatch, 0)
 
 	urlModels := make([]*model.URL, 0)
 
-	for _, reqURL := range dto.URLs {
+	for _, reqURL := range params.URLs {
 		shortKey := s.generateString()
 
-		urlModel := model.NewURL(shortKey, reqURL.OriginalURL, dto.UserID)
+		urlModel := model.NewURL(shortKey, reqURL.OriginalURL, params.UserID)
 		urlModels = append(urlModels, urlModel)
 	}
 
@@ -194,8 +191,8 @@ func (s *URL) CreateShortURLBatch(ctx context.Context, dto *dto.CreateShortURLBa
 		return nil, fmt.Errorf("failed to set urls: %w", err)
 	}
 
-	for _, reqURL := range dto.URLs {
-		respURL := response.CreateShortURLBatch{
+	for _, reqURL := range params.URLs {
+		respURL := model.CreateShortURLBatch{
 			CorrelationID: reqURL.CorrelationID,
 		}
 
@@ -203,11 +200,11 @@ func (s *URL) CreateShortURLBatch(ctx context.Context, dto *dto.CreateShortURLBa
 			if reqURL.OriginalURL == savedURL.OriginalURL {
 				shortURL, err := url.JoinPath(s.baseURL, savedURL.ShortKey)
 				if err != nil {
-					return nil, ErrInternal
+					return nil, model.ErrInternal
 				}
 
 				respURL.ShortURL = shortURL
-				resp = append(resp, &respURL)
+				resp = append(resp, respURL)
 			}
 		}
 	}
@@ -223,29 +220,29 @@ func (s *URL) CreateShortURLBatch(ctx context.Context, dto *dto.CreateShortURLBa
 //
 // Returns a slice of user URLs or an error if retrieval fails.
 // Returns ErrNoContent if the user has no URLs.
-func (s *URL) GetUserURLs(ctx context.Context, userID uuid.UUID) ([]*response.GetUserURL, error) {
+func (s *URL) GetUserURLs(ctx context.Context, userID uuid.UUID) ([]model.GetUserURL, error) {
 	urls, err := s.storage.GetURLsByUserID(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get urls: %w", err)
 	}
 
 	if len(urls) == 0 {
-		return nil, ErrNoContent
+		return nil, model.ErrNoContent
 	}
 
-	resp := make([]*response.GetUserURL, len(urls))
+	resp := make([]model.GetUserURL, len(urls))
 
 	for i, u := range urls {
 		shortURL, err := url.JoinPath(s.baseURL, u.ShortKey)
 		if err != nil {
-			return nil, ErrInternal
+			return nil, model.ErrInternal
 		}
 
-		respURL := response.GetUserURL{
+		respURL := model.GetUserURL{
 			ShortURL:    shortURL,
 			OriginalURL: u.OriginalURL,
 		}
-		resp[i] = &respURL
+		resp[i] = respURL
 	}
 
 	return resp, nil
@@ -258,18 +255,18 @@ func (s *URL) GetUserURLs(ctx context.Context, userID uuid.UUID) ([]*response.Ge
 //   - ctx: The request context
 //
 // Returns a GetStats response containing the counts or an error if retrieval fails.
-func (s *URL) GetStats(ctx context.Context) (response.GetStats, error) {
+func (s *URL) GetStats(ctx context.Context) (model.GetStats, error) {
 	urlsCount, err := s.storage.CountURLs(ctx)
 	if err != nil {
-		return response.GetStats{}, fmt.Errorf("failed to count urls: %w", err)
+		return model.GetStats{}, fmt.Errorf("failed to count urls: %w", err)
 	}
 
 	usersCount, err := s.storage.CountUsers(ctx)
 	if err != nil {
-		return response.GetStats{}, fmt.Errorf("failed to count users: %w", err)
+		return model.GetStats{}, fmt.Errorf("failed to count users: %w", err)
 	}
 
-	return response.GetStats{
+	return model.GetStats{
 		URLs:  urlsCount,
 		Users: usersCount,
 	}, nil
@@ -284,12 +281,15 @@ func (s *URL) GetStats(ctx context.Context) (response.GetStats, error) {
 //
 // Returns an error if the deletion request fails to be queued.
 // The actual deletion is performed asynchronously.
-func (s *URL) DeleteURLs(_ context.Context, data *dto.DeleteURLs) error {
+func (s *URL) DeleteURLs(_ context.Context, params model.DeleteURLsParams) error {
 	go func() {
-		batches := splitIntoBatches(data.ShortKeys, deleteBatchSize)
+		batches := splitIntoBatches(params.ShortKeys, deleteBatchSize)
 
 		for _, batch := range batches {
-			batchDTO := dto.NewDeleteURLs(batch, data.UserID)
+			batchDTO := model.DeleteURLsParams{
+				ShortKeys: batch,
+				UserID:    params.UserID,
+			}
 			_ = s.pool.Submit(context.Background(), 30*time.Second, s.deleteURLsJob(batchDTO), false)
 		}
 	}()
@@ -297,7 +297,7 @@ func (s *URL) DeleteURLs(_ context.Context, data *dto.DeleteURLs) error {
 	return nil
 }
 
-func (s *URL) deleteURLsJob(dto *dto.DeleteURLs) func(context.Context) (any, error) {
+func (s *URL) deleteURLsJob(dto model.DeleteURLsParams) func(context.Context) (any, error) {
 	return func(ctx context.Context) (any, error) {
 		urls, err := s.storage.GetURLs(ctx, dto.ShortKeys)
 		if err != nil {

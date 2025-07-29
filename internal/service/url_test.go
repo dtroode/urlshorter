@@ -15,11 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/dtroode/urlshorter/internal/model"
-	"github.com/dtroode/urlshorter/internal/request"
-	"github.com/dtroode/urlshorter/internal/response"
-	"github.com/dtroode/urlshorter/internal/service/dto"
 	"github.com/dtroode/urlshorter/internal/service/mocks"
-	"github.com/dtroode/urlshorter/internal/storage"
 )
 
 func TestURL_GetOriginalURL(t *testing.T) {
@@ -41,8 +37,8 @@ func TestURL_GetOriginalURL(t *testing.T) {
 		},
 		"does not exist": {
 			shortKey:      "does not exist",
-			storageError:  storage.ErrNotFound,
-			expectedError: ErrNotFound,
+			storageError:  model.ErrNotFound,
+			expectedError: model.ErrNotFound,
 		},
 		"deleted": {
 			shortKey: shortKey,
@@ -52,7 +48,7 @@ func TestURL_GetOriginalURL(t *testing.T) {
 				OriginalURL: originalURL,
 				DeletedAt:   &deletedAt,
 			},
-			expectedError: ErrGone,
+			expectedError: model.ErrGone,
 		},
 		"success": {
 			shortKey: shortKey,
@@ -117,7 +113,7 @@ func TestURL_CreateShortURL(t *testing.T) {
 				ShortKey:    "ABCDE",
 			},
 			shortKeyLength: 10,
-			expectedError:  ErrInternal,
+			expectedError:  model.ErrInternal,
 		},
 		"url already exists": {
 			originalURL: "yandex.ru",
@@ -126,11 +122,11 @@ func TestURL_CreateShortURL(t *testing.T) {
 				OriginalURL: "yandex.ru",
 				ShortKey:    "ABCDE",
 			},
-			setURLError:          storage.ErrConflict,
+			setURLError:          model.ErrConflict,
 			shortKeyLength:       5,
 			expectedLength:       22,
 			expectedUrlmapLength: 1,
-			expectedError:        storage.ErrConflict,
+			expectedError:        model.ErrConflict,
 		},
 		"base url without last slash": {
 			originalURL: "yandex.ru",
@@ -170,8 +166,11 @@ func TestURL_CreateShortURL(t *testing.T) {
 				storage:        urlStorage,
 			}
 
-			dto := dto.NewCreateShortURL(tt.originalURL, userID)
-			shortURL, err := service.CreateShortURL(ctx, dto)
+			params := &model.CreateShortURLParams{
+				OriginalURL: tt.originalURL,
+				UserID:      userID,
+			}
+			shortURL, err := service.CreateShortURL(ctx, *params)
 			assert.Equal(t, tt.expectedError, err)
 
 			if tt.expectedError == nil {
@@ -194,19 +193,19 @@ func TestURL_CreateShortURLBatch(t *testing.T) {
 	userID := uuid.New()
 
 	tests := map[string]struct {
-		originalURLs          []*request.CreateShortURLBatch
+		originalURLs          []model.URLWithCorrelation
 		baseURL               string
 		shortKeyLength        int
 		savedURLs             []*model.URL
 		setURLsError          error
 		existingURL           *model.URL
 		getURLByOriginalError error
-		expectedURLs          []*response.CreateShortURLBatch
+		expectedURLs          []model.CreateShortURLBatch
 		expectedLength        int
 		expectedError         error
 	}{
 		"save urls error": {
-			originalURLs: []*request.CreateShortURLBatch{
+			originalURLs: []model.URLWithCorrelation{
 				{
 					CorrelationID: "1",
 					OriginalURL:   "yandex.ru",
@@ -221,7 +220,7 @@ func TestURL_CreateShortURLBatch(t *testing.T) {
 			expectedError: fmt.Errorf("failed to set urls: %w", errors.New("storage error")),
 		},
 		"save urls success, already exists": {
-			originalURLs: []*request.CreateShortURLBatch{
+			originalURLs: []model.URLWithCorrelation{
 				{
 					CorrelationID: "1",
 					OriginalURL:   "yandex.ru",
@@ -240,7 +239,7 @@ func TestURL_CreateShortURLBatch(t *testing.T) {
 			},
 			shortKeyLength: 5,
 			expectedLength: 22,
-			expectedURLs: []*response.CreateShortURLBatch{
+			expectedURLs: []model.CreateShortURLBatch{
 				{
 					CorrelationID: "1",
 					ShortURL:      "http://localhost/ABOBA",
@@ -248,7 +247,7 @@ func TestURL_CreateShortURLBatch(t *testing.T) {
 			},
 		},
 		"save urls success, all new": {
-			originalURLs: []*request.CreateShortURLBatch{
+			originalURLs: []model.URLWithCorrelation{
 				{
 					CorrelationID: "1",
 					OriginalURL:   "yandex.ru",
@@ -263,7 +262,7 @@ func TestURL_CreateShortURLBatch(t *testing.T) {
 			},
 			shortKeyLength: 5,
 			expectedLength: 22,
-			expectedURLs: []*response.CreateShortURLBatch{
+			expectedURLs: []model.CreateShortURLBatch{
 				{
 					CorrelationID: "1",
 					ShortURL:      "http://localhost/ABCDE",
@@ -273,7 +272,7 @@ func TestURL_CreateShortURLBatch(t *testing.T) {
 		// ascii control character used here as base URL
 		// this causes url.JoinPath to fail
 		"failed to join path": {
-			originalURLs: []*request.CreateShortURLBatch{
+			originalURLs: []model.URLWithCorrelation{
 				{
 					CorrelationID: "1",
 					OriginalURL:   "yandex.ru",
@@ -291,11 +290,11 @@ func TestURL_CreateShortURLBatch(t *testing.T) {
 				},
 			},
 			shortKeyLength: 5,
-			expectedError:  ErrInternal,
+			expectedError:  model.ErrInternal,
 		},
 
 		"base url without last slash": {
-			originalURLs: []*request.CreateShortURLBatch{
+			originalURLs: []model.URLWithCorrelation{
 				{
 					CorrelationID: "1",
 					OriginalURL:   "yandex.ru",
@@ -310,7 +309,7 @@ func TestURL_CreateShortURLBatch(t *testing.T) {
 			},
 			shortKeyLength: 10,
 			expectedLength: 27,
-			expectedURLs: []*response.CreateShortURLBatch{
+			expectedURLs: []model.CreateShortURLBatch{
 				{
 					CorrelationID: "1",
 					ShortURL:      "http://localhost/ABCDE",
@@ -334,8 +333,11 @@ func TestURL_CreateShortURLBatch(t *testing.T) {
 				storage:        urlStorage,
 			}
 
-			dto := dto.NewCreateShortURLBatch(tt.originalURLs, userID)
-			shortURLs, err := service.CreateShortURLBatch(ctx, dto)
+			params := model.CreateShortURLBatchParams{
+				URLs:   tt.originalURLs,
+				UserID: userID,
+			}
+			shortURLs, err := service.CreateShortURLBatch(ctx, params)
 
 			if tt.expectedError != nil {
 				assert.Equal(t, tt.expectedError, err)
@@ -372,7 +374,7 @@ func TestURL_GetUserURLs(t *testing.T) {
 		baseURL          string
 		storageResponse  []*model.URL
 		storageError     error
-		expectedResponse []*response.GetUserURL
+		expectedResponse []model.GetUserURL
 		expectedError    error
 	}{
 		"storage error": {
@@ -383,7 +385,7 @@ func TestURL_GetUserURLs(t *testing.T) {
 		"no urls": {
 			baseURL:         "http://localhost",
 			storageResponse: make([]*model.URL, 0),
-			expectedError:   ErrNoContent,
+			expectedError:   model.ErrNoContent,
 		},
 		// ascii control character used here as base URL
 		// this causes url.JoinPath to fail
@@ -403,7 +405,7 @@ func TestURL_GetUserURLs(t *testing.T) {
 					UserID:      userID,
 				},
 			},
-			expectedError: ErrInternal,
+			expectedError: model.ErrInternal,
 		},
 		"success base without last slash": {
 			baseURL: "http://localhost",
@@ -421,7 +423,7 @@ func TestURL_GetUserURLs(t *testing.T) {
 					UserID:      userID,
 				},
 			},
-			expectedResponse: []*response.GetUserURL{
+			expectedResponse: []model.GetUserURL{
 				{
 					ShortURL:    "http://localhost/ABCDE",
 					OriginalURL: "http://yandex.ru",
@@ -448,7 +450,7 @@ func TestURL_GetUserURLs(t *testing.T) {
 					UserID:      userID,
 				},
 			},
-			expectedResponse: []*response.GetUserURL{
+			expectedResponse: []model.GetUserURL{
 				{
 					ShortURL:    "http://localhost/ABCDE",
 					OriginalURL: "http://yandex.ru",
@@ -502,7 +504,10 @@ func TestURL_DeleteURLs(t *testing.T) {
 			UserID:      uuid.New(),
 		},
 	}
-	dto := dto.NewDeleteURLs(shortKeys, userID)
+	params := model.DeleteURLsParams{
+		ShortKeys: shortKeys,
+		UserID:    userID,
+	}
 
 	t.Run("get urls error", func(t *testing.T) {
 		t.Parallel()
@@ -519,7 +524,7 @@ func TestURL_DeleteURLs(t *testing.T) {
 			Return(nil, errors.New("service error"))
 
 		service := NewURL("base", 3, 3, 15, urlStorage)
-		service.DeleteURLs(context.Background(), dto)
+		service.DeleteURLs(context.Background(), params)
 
 		wg.Wait()
 		urlStorage.AssertNotCalled(t, "DeleteURLs")
@@ -545,7 +550,7 @@ func TestURL_DeleteURLs(t *testing.T) {
 			Return(nil)
 
 		service := NewURL("base", 3, 3, 15, urlStorage)
-		service.DeleteURLs(context.Background(), dto)
+		service.DeleteURLs(context.Background(), params)
 
 		wg.Wait()
 		urlStorage.AssertExpectations(t)

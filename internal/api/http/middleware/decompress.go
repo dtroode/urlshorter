@@ -37,7 +37,11 @@ func Decompress(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ce := r.Header.Get("Content-Encoding")
 		if strings.Contains(ce, "gzip") {
-			gz := readerPool.Get().(*gzip.Reader)
+			gz, ok := readerPool.Get().(*gzip.Reader)
+			if !ok {
+				http.Error(w, "failed to assert gzip reader", http.StatusInternalServerError)
+				return
+			}
 
 			if gz == nil {
 				var err error
@@ -47,7 +51,10 @@ func Decompress(h http.Handler) http.Handler {
 					return
 				}
 			} else {
-				gz.Reset(r.Body)
+				if err := gz.Reset(r.Body); err != nil {
+					http.Error(w, "failed to reset gzip reader", http.StatusInternalServerError)
+					return
+				}
 			}
 			defer readerPool.Put(gz)
 
