@@ -13,8 +13,6 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"github.com/dtroode/urlshorter/internal/model"
-	"github.com/dtroode/urlshorter/internal/request"
-	"github.com/dtroode/urlshorter/internal/service/dto"
 	"github.com/dtroode/urlshorter/internal/service/mocks"
 )
 
@@ -205,13 +203,13 @@ func BenchmarkURL_CreateShortURLBatch(b *testing.B) {
 	svc := NewURL("http://localhost:8080", 10, 10, 10, storage)
 
 	for _, batchSize := range batchSizes {
-		urls := make([]*request.CreateShortURLBatch, 0)
+		urls := make([]model.URLWithCorrelation, 0)
 		urlModels := make([]*model.URL, 0)
 
 		for i := 0; i < batchSize; i++ {
 			correlationID := uuid.New().String()
 			originalURL := fmt.Sprintf("https://example.com/%s", correlationID)
-			urls = append(urls, &request.CreateShortURLBatch{
+			urls = append(urls, model.URLWithCorrelation{
 				CorrelationID: correlationID,
 				OriginalURL:   originalURL,
 			})
@@ -228,7 +226,7 @@ func BenchmarkURL_CreateShortURLBatch(b *testing.B) {
 			b.ResetTimer()
 
 			for i := 0; i < b.N; i++ {
-				svc.CreateShortURLBatch(ctx, &dto.CreateShortURLBatch{
+				svc.CreateShortURLBatch(ctx, model.CreateShortURLBatchParams{
 					URLs:   urls,
 					UserID: userID,
 				})
@@ -279,7 +277,7 @@ func BenchmarkURL_DeleteURLs(b *testing.B) {
 			b.ResetTimer()
 
 			for i := 0; i < b.N; i++ {
-				svc.DeleteURLs(ctx, &dto.DeleteURLs{
+				svc.DeleteURLs(ctx, model.DeleteURLsParams{
 					ShortKeys: shortKeys,
 					UserID:    userID,
 				})

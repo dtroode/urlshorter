@@ -13,7 +13,6 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/dtroode/urlshorter/internal/model"
-	"github.com/dtroode/urlshorter/internal/storage"
 )
 
 // File defines interface for file operations.
@@ -26,7 +25,7 @@ type File interface {
 type URLMap map[string]*model.URL
 
 // UnmarshalJSON unmarshals JSON data into URLMap.
-func (m URLMap) UnmarshalJSON(d []byte) error {
+func (m *URLMap) UnmarshalJSON(d []byte) error {
 	urlSlice := make([]model.URL, 0)
 
 	err := json.Unmarshal(d, &urlSlice)
@@ -34,8 +33,12 @@ func (m URLMap) UnmarshalJSON(d []byte) error {
 		return err
 	}
 
+	if *m == nil {
+		*m = make(URLMap)
+	}
+
 	for _, v := range urlSlice {
-		m[v.ShortKey] = &v
+		(*m)[v.ShortKey] = &v
 	}
 
 	return nil
@@ -43,10 +46,10 @@ func (m URLMap) UnmarshalJSON(d []byte) error {
 
 // Storage represents in-memory storage implementation.
 type Storage struct {
-	urlmap  URLMap
-	mu      sync.RWMutex
 	file    File
 	encoder *json.Encoder
+	urlmap  URLMap
+	mu      sync.RWMutex
 }
 
 // Ping checks if the storage is available.
@@ -60,7 +63,9 @@ func NewStorage(filename string) (*Storage, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file for read: %w", err)
 	}
-	defer readFile.Close()
+	defer func() {
+		_ = readFile.Close()
+	}()
 
 	scanner := bufio.NewScanner(readFile)
 
@@ -68,13 +73,13 @@ func NewStorage(filename string) (*Storage, error) {
 
 	for scanner.Scan() {
 		entry := &model.URL{}
-		if err := json.Unmarshal(scanner.Bytes(), entry); err != nil {
-			return nil, fmt.Errorf("failed to unmarshall urls entry: %w", err)
+		if unmarshalErr := json.Unmarshal(scanner.Bytes(), entry); unmarshalErr != nil {
+			return nil, fmt.Errorf("failed to unmarshall urls entry: %w", unmarshalErr)
 		}
 		urlmap[entry.ShortKey] = entry
 	}
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("scanner error: %w", err)
+	if scanErr := scanner.Err(); scanErr != nil {
+		return nil, fmt.Errorf("scanner error: %w", scanErr)
 	}
 
 	writeFile, err := os.OpenFile(filename, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0600)
@@ -102,7 +107,7 @@ func (s *Storage) GetURL(_ context.Context, shortKey string) (*model.URL, error)
 	val, ok := s.urlmap[shortKey]
 
 	if !ok {
-		return nil, storage.ErrNotFound
+		return nil, model.ErrNotFound
 	}
 
 	return val, nil
@@ -197,4 +202,27 @@ func (s *Storage) SetURLs(ctx context.Context, urls []*model.URL) ([]*model.URL,
 // DeleteURLs marks the specified URLs as deleted.
 func (s *Storage) DeleteURLs(_ context.Context, _ []uuid.UUID) error {
 	return nil
+}
+
+// CountURLs returns the total number of URLs in the storage.
+func (s *Storage) CountURLs(ctx context.Context) (int64, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return int64(len(s.urlmap)), nil
+}
+
+// CountUsers returns the total number of unique users in the storage.
+func (s *Storage) CountUsers(ctx context.Context) (int64, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	users := make(map[uuid.UUID]struct{})
+	for _, url := range s.urlmap {
+		if url.UserID != uuid.Nil {
+			users[url.UserID] = struct{}{}
+		}
+	}
+
+	return int64(len(users)), nil
 }

@@ -12,7 +12,6 @@ import (
 
 	"github.com/dtroode/urlshorter/database"
 	"github.com/dtroode/urlshorter/internal/model"
-	"github.com/dtroode/urlshorter/internal/storage"
 )
 
 // Storage represents PostgreSQL storage implementation.
@@ -62,7 +61,7 @@ func (s *Storage) GetURL(ctx context.Context, shortKey string) (*model.URL, erro
 	err := s.db.QueryRow(ctx, query, shortKey).Scan(&url.ID, &url.ShortKey, &url.OriginalURL, &url.UserID, &url.DeletedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, storage.ErrNotFound
+			return nil, model.ErrNotFound
 		}
 		return nil, fmt.Errorf("failed to get url: %w", err)
 	}
@@ -140,7 +139,7 @@ func (s *Storage) SetURL(ctx context.Context, url *model.URL) (*model.URL, error
 	}
 
 	if url.ID != savedURL.ID {
-		err = storage.ErrConflict
+		err = model.ErrConflict
 	}
 
 	return &savedURL, err
@@ -194,4 +193,26 @@ func (s *Storage) DeleteURLs(ctx context.Context, ids []uuid.UUID) error {
 	}
 
 	return nil
+}
+
+// CountURLs returns the total number of URLs in the storage.
+func (s *Storage) CountURLs(ctx context.Context) (int64, error) {
+	var count int64
+	query := `SELECT COUNT(*) FROM urls`
+	if err := s.db.QueryRow(ctx, query).Scan(&count); err != nil {
+		return 0, fmt.Errorf("failed to count urls: %w", err)
+	}
+
+	return count, nil
+}
+
+// CountUsers returns the total number of unique users in the storage.
+func (s *Storage) CountUsers(ctx context.Context) (int64, error) {
+	var count int64
+	query := `SELECT COUNT(DISTINCT user_id) FROM urls`
+	if err := s.db.QueryRow(ctx, query).Scan(&count); err != nil {
+		return 0, fmt.Errorf("failed to count urls: %w", err)
+	}
+
+	return count, nil
 }

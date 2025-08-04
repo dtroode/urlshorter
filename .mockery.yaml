@@ -7,7 +7,7 @@ outpkg: "mocks"
 mockname: "{{.InterfaceName}}"
 filename: "{{.MockName}}.go"
 packages:
-    github.com/dtroode/urlshorter/internal/handler:
+    github.com/dtroode/urlshorter/internal/api/http/handler:
         # place your package-specific config here
         config:
         interfaces:
@@ -16,7 +16,7 @@ packages:
                 config:
             HealthService:
                 config:
-    github.com/dtroode/urlshorter/internal/middleware:
+    github.com/dtroode/urlshorter/internal/api/middleware:
         # place your package-specific config here
         config:
         interfaces:

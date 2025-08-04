@@ -21,7 +21,9 @@ func TestInitialize(t *testing.T) {
 		"default values": {
 			args: []string{"cmd"},
 			wantConfig: &Config{
-				RunAddr:            ":8080",
+				HTTPRunAddr: ":8080",
+				GRPCRunAddr: ":8081",
+
 				BaseURL:            "http://localhost:8080",
 				ShortKeyLength:     8,
 				LogLevel:           "INFO",
@@ -38,7 +40,8 @@ func TestInitialize(t *testing.T) {
 		"with command line flags": {
 			args: []string{"cmd", "-a", ":9090", "-b", "https://example.com", "-u", "10", "-l", "DEBUG", "-f", "/tmp/test.json", "-d", "postgres://test", "-j", "custom-secret", "-cl", "5", "-q", "100", "-s", "-sc", "cert.pem", "-sp", "key.pem"},
 			wantConfig: &Config{
-				RunAddr:            ":9090",
+				HTTPRunAddr:        ":9090",
+				GRPCRunAddr:        ":8081",
 				BaseURL:            "https://example.com",
 				ShortKeyLength:     10,
 				LogLevel:           "DEBUG",
@@ -69,7 +72,8 @@ func TestInitialize(t *testing.T) {
 			},
 			args: []string{"cmd"},
 			wantConfig: &Config{
-				RunAddr:            ":9090",
+				HTTPRunAddr:        ":9090",
+				GRPCRunAddr:        ":8081",
 				BaseURL:            "https://example.com",
 				ShortKeyLength:     10,
 				LogLevel:           "DEBUG",
@@ -90,7 +94,8 @@ func TestInitialize(t *testing.T) {
 			},
 			args: []string{"cmd", "-a", ":8080", "-b", "http://localhost:8080"},
 			wantConfig: &Config{
-				RunAddr:            ":9090",
+				HTTPRunAddr:        ":9090",
+				GRPCRunAddr:        ":8081",
 				BaseURL:            "https://example.com",
 				ShortKeyLength:     8,
 				LogLevel:           "INFO",
@@ -106,7 +111,7 @@ func TestInitialize(t *testing.T) {
 		},
 		"with config file": {
 			configFile: &Config{
-				RunAddr:            ":7070",
+				HTTPRunAddr:        ":7070",
 				BaseURL:            "http://config-file.com",
 				ShortKeyLength:     12,
 				LogLevel:           "WARN",
@@ -121,7 +126,7 @@ func TestInitialize(t *testing.T) {
 			},
 			args: []string{"cmd", "-c", "test-config.json"},
 			wantConfig: &Config{
-				RunAddr:            ":7070",
+				HTTPRunAddr:        ":7070",
 				BaseURL:            "http://config-file.com",
 				ShortKeyLength:     12,
 				LogLevel:           "WARN",
@@ -137,7 +142,7 @@ func TestInitialize(t *testing.T) {
 		},
 		"flags override config file": {
 			configFile: &Config{
-				RunAddr:            ":7070",
+				HTTPRunAddr:        ":7070",
 				BaseURL:            "http://config-file.com",
 				ShortKeyLength:     12,
 				LogLevel:           "WARN",
@@ -152,7 +157,7 @@ func TestInitialize(t *testing.T) {
 			},
 			args: []string{"cmd", "-c", "test-config.json", "-a", ":9090", "-b", "https://flags-override.com"},
 			wantConfig: &Config{
-				RunAddr:            ":9090",
+				HTTPRunAddr:        ":9090",
 				BaseURL:            "https://flags-override.com",
 				ShortKeyLength:     12,
 				LogLevel:           "WARN",
@@ -168,7 +173,7 @@ func TestInitialize(t *testing.T) {
 		},
 		"environment variables override config file and flags": {
 			configFile: &Config{
-				RunAddr:            ":7070",
+				HTTPRunAddr:        ":7070",
 				BaseURL:            "http://config-file.com",
 				ShortKeyLength:     12,
 				LogLevel:           "WARN",
@@ -188,7 +193,7 @@ func TestInitialize(t *testing.T) {
 			},
 			args: []string{"cmd", "-c", "test-config.json", "-a", ":8080", "-b", "https://flags-override.com"},
 			wantConfig: &Config{
-				RunAddr:            ":9090",
+				HTTPRunAddr:        ":9090",
 				BaseURL:            "https://env-override.com",
 				ShortKeyLength:     12,
 				LogLevel:           "DEBUG",
@@ -204,7 +209,7 @@ func TestInitialize(t *testing.T) {
 		},
 		"config file from environment variable": {
 			configFile: &Config{
-				RunAddr:            ":7070",
+				HTTPRunAddr:        ":7070",
 				BaseURL:            "http://env-config.com",
 				ShortKeyLength:     12,
 				LogLevel:           "WARN",
@@ -222,7 +227,7 @@ func TestInitialize(t *testing.T) {
 			},
 			args: []string{"cmd"},
 			wantConfig: &Config{
-				RunAddr:            ":7070",
+				HTTPRunAddr:        ":7070",
 				BaseURL:            "http://env-config.com",
 				ShortKeyLength:     12,
 				LogLevel:           "WARN",
@@ -419,7 +424,8 @@ func TestSetDefaults(t *testing.T) {
 	config.setDefaults()
 
 	expected := &Config{
-		RunAddr:            ":8080",
+		HTTPRunAddr:        ":8080",
+		GRPCRunAddr:        ":8081",
 		BaseURL:            "http://localhost:8080",
 		ShortKeyLength:     8,
 		LogLevel:           "INFO",

@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package api;
+
+option go_package = "github.com/dtroode/urlshorter/internal/api/grpc/proto";
+
+message URL {
+  string short_url = 1;
+  string original_url = 2;
+}
+
+message GetOriginalURLRequest {
+  string id = 1;
+}
+
+message GetOriginalURLResponse {
+  string original_url = 1;
+}
+
+message CreateShortURLRequest {
+  string original_url = 1;
+}
+message CreateShortURLResponse {
+  string short_url = 1;
+  bool existed = 2;
+}
+
+message OriginalURLWithCorrelation {
+  string correlation_id = 1;
+  string original_url = 2;
+}
+
+message ShortURLWithCorrelation {
+  string correlation_id = 1;
+  string short_url = 2;
+}
+
+message CreateShortURLBatchRequest {
+  repeated OriginalURLWithCorrelation original_urls = 1;
+}
+
+message CreateShortURLBatchResponse {
+  repeated ShortURLWithCorrelation short_urls = 1;
+}
+
+message GetUserURLsRequest {
+}
+
+message GetUserURLsResponse {
+  repeated URL urls = 1;
+}
+
+message DeleteURLsRequest {
+  repeated string short_urls = 1;
+}
+
+message DeleteURLsResponse {}
+
+service URLService {
+  rpc GetOriginalURL(GetOriginalURLRequest) returns (GetOriginalURLResponse);
+  rpc CreateShortURL(CreateShortURLRequest) returns (CreateShortURLResponse);
+  rpc CreateShortURLBatch(CreateShortURLBatchRequest) returns (CreateShortURLBatchResponse);
+  rpc GetUserURLs(GetUserURLsRequest) returns (GetUserURLsResponse);
+  rpc DeleteURLs(DeleteURLsRequest) returns (DeleteURLsResponse);
+}

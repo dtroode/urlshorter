@@ -17,5 +17,7 @@ type Storage interface {
 	SetURLs(ctx context.Context, urls []*model.URL) (savedURLs []*model.URL, err error)
 	GetURLsByUserID(ctx context.Context, userID uuid.UUID) ([]*model.URL, error)
 	DeleteURLs(ctx context.Context, ids []uuid.UUID) error
+	CountURLs(ctx context.Context) (int64, error)
+	CountUsers(ctx context.Context) (int64, error)
 	Close() error
 }

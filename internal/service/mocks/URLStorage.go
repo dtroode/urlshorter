@@ -5,9 +5,8 @@ package mocks
 import (
 	context "context"
 
-	mock "github.com/stretchr/testify/mock"
-
 	model "github.com/dtroode/urlshorter/internal/model"
+	mock "github.com/stretchr/testify/mock"
 
 	uuid "github.com/google/uuid"
 )
@@ -23,6 +22,118 @@ type URLStorage_Expecter struct {
 
 func (_m *URLStorage) EXPECT() *URLStorage_Expecter {
 	return &URLStorage_Expecter{mock: &_m.Mock}
+}
+
+// CountURLs provides a mock function with given fields: ctx
+func (_m *URLStorage) CountURLs(ctx context.Context) (int64, error) {
+	ret := _m.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CountURLs")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context) (int64, error)); ok {
+		return rf(ctx)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context) int64); ok {
+		r0 = rf(ctx)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = rf(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// URLStorage_CountURLs_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CountURLs'
+type URLStorage_CountURLs_Call struct {
+	*mock.Call
+}
+
+// CountURLs is a helper method to define mock.On call
+//   - ctx context.Context
+func (_e *URLStorage_Expecter) CountURLs(ctx interface{}) *URLStorage_CountURLs_Call {
+	return &URLStorage_CountURLs_Call{Call: _e.mock.On("CountURLs", ctx)}
+}
+
+func (_c *URLStorage_CountURLs_Call) Run(run func(ctx context.Context)) *URLStorage_CountURLs_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context))
+	})
+	return _c
+}
+
+func (_c *URLStorage_CountURLs_Call) Return(_a0 int64, _a1 error) *URLStorage_CountURLs_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *URLStorage_CountURLs_Call) RunAndReturn(run func(context.Context) (int64, error)) *URLStorage_CountURLs_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CountUsers provides a mock function with given fields: ctx
+func (_m *URLStorage) CountUsers(ctx context.Context) (int64, error) {
+	ret := _m.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CountUsers")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context) (int64, error)); ok {
+		return rf(ctx)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context) int64); ok {
+		r0 = rf(ctx)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = rf(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// URLStorage_CountUsers_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CountUsers'
+type URLStorage_CountUsers_Call struct {
+	*mock.Call
+}
+
+// CountUsers is a helper method to define mock.On call
+//   - ctx context.Context
+func (_e *URLStorage_Expecter) CountUsers(ctx interface{}) *URLStorage_CountUsers_Call {
+	return &URLStorage_CountUsers_Call{Call: _e.mock.On("CountUsers", ctx)}
+}
+
+func (_c *URLStorage_CountUsers_Call) Run(run func(ctx context.Context)) *URLStorage_CountUsers_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context))
+	})
+	return _c
+}
+
+func (_c *URLStorage_CountUsers_Call) Return(_a0 int64, _a1 error) *URLStorage_CountUsers_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *URLStorage_CountUsers_Call) RunAndReturn(run func(context.Context) (int64, error)) *URLStorage_CountUsers_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // DeleteURLs provides a mock function with given fields: ctx, ids

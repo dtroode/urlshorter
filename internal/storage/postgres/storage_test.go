@@ -169,4 +169,25 @@ func TestStorage(t *testing.T) {
 		require.Equal(t, url1.ID, savedURL.ID)
 		require.Equal(t, "conflictkey", savedURL.ShortKey)
 	})
+
+	t.Run("count_urls_and_users", func(t *testing.T) {
+		userID1 := uuid.New()
+		userID2 := uuid.New()
+		urls := []*model.URL{
+			{ID: uuid.New(), ShortKey: "countkey1", OriginalURL: "https://count1.com", UserID: userID1},
+			{ID: uuid.New(), ShortKey: "countkey2", OriginalURL: "https://count2.com", UserID: userID1},
+			{ID: uuid.New(), ShortKey: "countkey3", OriginalURL: "https://count3.com", UserID: userID2},
+		}
+
+		_, err := s.SetURLs(ctx, urls)
+		require.NoError(t, err)
+
+		urlCount, err := s.CountURLs(ctx)
+		require.NoError(t, err)
+		require.GreaterOrEqual(t, urlCount, int64(3))
+
+		userCount, err := s.CountUsers(ctx)
+		require.NoError(t, err)
+		require.GreaterOrEqual(t, userCount, int64(2))
+	})
 }
