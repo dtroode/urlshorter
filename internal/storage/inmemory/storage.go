@@ -25,7 +25,7 @@ type File interface {
 type URLMap map[string]*model.URL
 
 // UnmarshalJSON unmarshals JSON data into URLMap.
-func (m URLMap) UnmarshalJSON(d []byte) error {
+func (m *URLMap) UnmarshalJSON(d []byte) error {
 	urlSlice := make([]model.URL, 0)
 
 	err := json.Unmarshal(d, &urlSlice)
@@ -33,8 +33,12 @@ func (m URLMap) UnmarshalJSON(d []byte) error {
 		return err
 	}
 
+	if *m == nil {
+		*m = make(URLMap)
+	}
+
 	for _, v := range urlSlice {
-		m[v.ShortKey] = &v
+		(*m)[v.ShortKey] = &v
 	}
 
 	return nil

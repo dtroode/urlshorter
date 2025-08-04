@@ -95,6 +95,10 @@ func NewURL(
 	return service
 }
 
+// generateString generates a random string of the configured length.
+// It uses a predefined set of characters to create short, URL-friendly identifiers.
+//
+// Returns a random string of the configured shortKeyLength.
 func (s *URL) generateString() string {
 	var characters = []rune("ABCDEF0123456789")
 	var sb strings.Builder
@@ -164,6 +168,14 @@ func (s *URL) CreateShortURL(ctx context.Context, params model.CreateShortURLPar
 	}
 
 	return shortURL, responseError
+}
+
+// Close closes the URL service and its worker pool.
+// It ensures proper cleanup of background workers.
+func (s *URL) Close() {
+	if s.pool != nil {
+		s.pool.Close()
+	}
 }
 
 // CreateShortURLBatch creates multiple shortened URLs in a single operation.
@@ -297,6 +309,13 @@ func (s *URL) DeleteURLs(_ context.Context, params model.DeleteURLsParams) error
 	return nil
 }
 
+// deleteURLsJob creates a job function for deleting URLs in the worker pool.
+// It retrieves URLs by short keys, filters them by user ID, and marks them as deleted.
+//
+// Parameters:
+//   - dto: The parameters containing short keys and user ID for deletion
+//
+// Returns a job function that can be submitted to the worker pool.
 func (s *URL) deleteURLsJob(dto model.DeleteURLsParams) func(context.Context) (any, error) {
 	return func(ctx context.Context) (any, error) {
 		urls, err := s.storage.GetURLs(ctx, dto.ShortKeys)
@@ -320,6 +339,14 @@ func (s *URL) deleteURLsJob(dto model.DeleteURLsParams) func(context.Context) (a
 	}
 }
 
+// splitIntoBatches splits a slice of items into smaller batches of the specified size.
+// This is useful for processing large collections in smaller chunks to avoid memory issues.
+//
+// Parameters:
+//   - items: The slice of items to split into batches
+//   - batchSize: The maximum size of each batch
+//
+// Returns a slice of batches, where each batch contains at most batchSize items.
 func splitIntoBatches[T any](items []T, batchSize int) [][]T {
 	count := (len(items) + batchSize - 1) / batchSize
 	batches := make([][]T, 0, count)

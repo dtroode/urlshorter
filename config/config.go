@@ -12,7 +12,8 @@ import (
 
 // Config contains application configuration parameters.
 type Config struct {
-	RunAddr            string `env:"SERVER_ADDRESS" json:"server_address"`
+	HTTPRunAddr        string `env:"SERVER_ADDRESS" json:"server_address"`
+	GRPCRunAddr        string `env:"GRPC_ADDRESS" json:"grpc_address"`
 	BaseURL            string `env:"BASE_URL" json:"base_url"`
 	LogLevel           string `env:"LOG_LEVEL" json:"log_level"`
 	FileStoragePath    string `env:"FILE_STORAGE_PATH" json:"file_storage_path"`
@@ -28,7 +29,8 @@ type Config struct {
 }
 
 func (c *Config) setDefaults() {
-	c.RunAddr = ":8080"
+	c.HTTPRunAddr = ":8080"
+	c.GRPCRunAddr = ":8081"
 	c.BaseURL = "http://localhost:8080"
 	c.ShortKeyLength = 8
 	c.LogLevel = "INFO"
@@ -44,6 +46,13 @@ func (c *Config) setDefaults() {
 }
 
 // Initialize creates and initializes application configuration.
+// It loads configuration from multiple sources in the following order:
+// 1. Default values
+// 2. Configuration file (if specified)
+// 3. Command line flags
+// 4. Environment variables (highest priority)
+//
+// Returns a fully configured Config instance or an error if configuration loading fails.
 func Initialize() (*Config, error) {
 	config := &Config{}
 	config.setDefaults()
@@ -66,8 +75,6 @@ func Initialize() (*Config, error) {
 
 	return config, nil
 }
-
-// parseFlagsForConfigFile parses flags to get the config file path
 func parseFlagsForConfigFile() string {
 	var configFile string
 
@@ -83,12 +90,12 @@ func parseFlagsForConfigFile() string {
 	return configFile
 }
 
-// parseCommandLineFlags parses all command line flags and applies them to config
 func parseCommandLineFlags(config *Config) error {
 	flagSet := flag.NewFlagSet("app", flag.ContinueOnError)
 
 	flagSet.String("c", "", "config file name")
-	flagSet.StringVar(&config.RunAddr, "a", config.RunAddr, "address for app to run in format `host:port` or `:port`")
+	flagSet.StringVar(&config.HTTPRunAddr, "a", config.HTTPRunAddr, "address for http server to run in format `host:port` or `:port`")
+	flagSet.StringVar(&config.GRPCRunAddr, "g", config.GRPCRunAddr, "address for grpc server to run in format `host:port` or `:port`")
 	flagSet.StringVar(&config.BaseURL, "b", config.BaseURL, "base url which goes before short url id")
 	flagSet.IntVar(&config.ShortKeyLength, "u", config.ShortKeyLength, "short key length")
 	flagSet.StringVar(&config.LogLevel, "l", config.LogLevel, "log level")
@@ -105,7 +112,6 @@ func parseCommandLineFlags(config *Config) error {
 	return flagSet.Parse(os.Args[1:])
 }
 
-// parseConfigFromFile parses json file and applies values to config
 func parseConfigFromFile(config *Config, filename string) error {
 	file, err := os.Open(filename)
 	if err != nil {

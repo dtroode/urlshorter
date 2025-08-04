@@ -317,8 +317,8 @@ func TestURL_DeleteURLs(t *testing.T) {
 }
 
 func TestURLMap_UnmarshalJSON(t *testing.T) {
-	jsonData := `[{"short_key":"abc","original_url":"https://ya.ru"},{"short_key":"def","original_url":"https://google.com"}]`
-	m := URLMap{}
+	jsonData := `[{"ShortKey":"abc","OriginalURL":"https://ya.ru"},{"ShortKey":"def","OriginalURL":"https://google.com"}]`
+	m := make(URLMap)
 	err := m.UnmarshalJSON([]byte(jsonData))
 	require.NoError(t, err)
 	assert.Len(t, m, 2)

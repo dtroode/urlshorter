@@ -12,8 +12,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/dtroode/urlshorter/internal/api/http/middleware/mocks"
-	"github.com/dtroode/urlshorter/internal/auth"
+	httpContext "github.com/dtroode/urlshorter/internal/api/http/context"
+	"github.com/dtroode/urlshorter/internal/api/middleware/mocks"
 	"github.com/dtroode/urlshorter/internal/logger"
 )
 
@@ -25,8 +25,9 @@ func TestAuthenticate_Handle(t *testing.T) {
 	userID := uuid.New()
 	tokenString := "token-string"
 
+	httpContextManager := httpContext.NewManager()
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		contextUserID, ok := auth.GetUserIDFromContext(r.Context())
+		contextUserID, ok := httpContextManager.GetUserIDFromContext(r.Context())
 		assert.True(t, ok)
 		assert.NotEqual(t, uuid.Nil, contextUserID)
 		w.WriteHeader(http.StatusOK)
@@ -44,7 +45,7 @@ func TestAuthenticate_Handle(t *testing.T) {
 			Return(tokenString, nil)
 
 		m := NewAuthenticate(tokenMock, dummyLogger)
-		m.Handle(h).ServeHTTP(w, r)
+		m.HandleHTTP(h).ServeHTTP(w, r)
 
 		res := w.Result()
 		defer res.Body.Close()
@@ -66,7 +67,7 @@ func TestAuthenticate_Handle(t *testing.T) {
 			Return("", errors.New("token error"))
 
 		m := NewAuthenticate(tokenMock, dummyLogger)
-		m.Handle(h).ServeHTTP(w, r)
+		m.HandleHTTP(h).ServeHTTP(w, r)
 
 		res := w.Result()
 		defer res.Body.Close()
@@ -97,7 +98,7 @@ func TestAuthenticate_Handle(t *testing.T) {
 			Return(tokenString, nil)
 
 		m := NewAuthenticate(tokenMock, dummyLogger)
-		m.Handle(h).ServeHTTP(w, r)
+		m.HandleHTTP(h).ServeHTTP(w, r)
 
 		res := w.Result()
 		defer res.Body.Close()
@@ -127,7 +128,7 @@ func TestAuthenticate_Handle(t *testing.T) {
 			Return(uuid.Nil, nil)
 
 		m := NewAuthenticate(tokenMock, dummyLogger)
-		m.Handle(h).ServeHTTP(w, r)
+		m.HandleHTTP(h).ServeHTTP(w, r)
 
 		res := w.Result()
 		defer res.Body.Close()
@@ -156,7 +157,7 @@ func TestAuthenticate_Handle(t *testing.T) {
 			Return(userID, nil)
 
 		m := NewAuthenticate(tokenMock, dummyLogger)
-		m.Handle(h).ServeHTTP(w, r)
+		m.HandleHTTP(h).ServeHTTP(w, r)
 
 		res := w.Result()
 		defer res.Body.Close()

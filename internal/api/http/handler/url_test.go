@@ -17,15 +17,21 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	httpContext "github.com/dtroode/urlshorter/internal/api/http/context"
 	"github.com/dtroode/urlshorter/internal/api/http/handler/mocks"
 	"github.com/dtroode/urlshorter/internal/api/http/request"
-	"github.com/dtroode/urlshorter/internal/auth"
 	"github.com/dtroode/urlshorter/internal/logger"
 	"github.com/dtroode/urlshorter/internal/model"
 	"github.com/stretchr/testify/mock"
 )
 
 type failReader struct {
+}
+
+// helper function to create context with userID for tests
+func createContextWithUserID(userID uuid.UUID) context.Context {
+	contextManager := httpContext.NewManager()
+	return contextManager.SetUserIDToContext(context.Background(), userID)
 }
 
 func (m *failReader) Read(p []byte) (n int, err error) {
@@ -142,14 +148,14 @@ func TestHandler_CreateShortURL(t *testing.T) {
 			wantStatusCode: http.StatusInternalServerError,
 		},
 		"failed to read body": {
-			ctx:            auth.SetUserIDToContext(context.Background(), userID),
+			ctx:            createContextWithUserID(userID),
 			body:           &failReader{},
 			readBodyError:  errors.New("read body error"),
 			wantError:      true,
 			wantStatusCode: http.StatusBadRequest,
 		},
 		"service error": {
-			ctx:              auth.SetUserIDToContext(context.Background(), userID),
+			ctx:              createContextWithUserID(userID),
 			body:             strings.NewReader(url),
 			readBodyResponse: 0,
 			serviceError:     errors.New("service error"),
@@ -157,7 +163,7 @@ func TestHandler_CreateShortURL(t *testing.T) {
 			wantStatusCode:   http.StatusInternalServerError,
 		},
 		"service error conflict": {
-			ctx:              auth.SetUserIDToContext(context.Background(), userID),
+			ctx:              createContextWithUserID(userID),
 			body:             strings.NewReader(url),
 			readBodyResponse: 0,
 			serviceError:     model.ErrConflict,
@@ -167,7 +173,7 @@ func TestHandler_CreateShortURL(t *testing.T) {
 			wantResponse:     []byte(responseURL),
 		},
 		"success": {
-			ctx:              auth.SetUserIDToContext(context.Background(), userID),
+			ctx:              createContextWithUserID(userID),
 			body:             strings.NewReader(url),
 			readBodyResponse: 0,
 			serviceResponse:  responseURL,
@@ -232,20 +238,20 @@ func TestHandler_CreateShortURLJSON(t *testing.T) {
 			wantStatusCode: http.StatusInternalServerError,
 		},
 		"failed to decode body": {
-			ctx:            auth.SetUserIDToContext(context.Background(), userID),
+			ctx:            createContextWithUserID(userID),
 			body:           "wrong body",
 			wantError:      true,
 			wantStatusCode: http.StatusBadRequest,
 		},
 		"service error": {
-			ctx:            auth.SetUserIDToContext(context.Background(), userID),
+			ctx:            createContextWithUserID(userID),
 			body:           fmt.Sprintf(`{"url": "%s"}`, url),
 			serviceError:   errors.New("service error"),
 			wantError:      true,
 			wantStatusCode: http.StatusInternalServerError,
 		},
 		"service error conflict": {
-			ctx:             auth.SetUserIDToContext(context.Background(), userID),
+			ctx:             createContextWithUserID(userID),
 			body:            fmt.Sprintf(`{"url": "%s"}`, url),
 			serviceError:    model.ErrConflict,
 			serviceResponse: responseURL,
@@ -254,7 +260,7 @@ func TestHandler_CreateShortURLJSON(t *testing.T) {
 			wantResponse:    fmt.Sprintf(`{"result": "%s"}`, responseURL),
 		},
 		"success": {
-			ctx:             auth.SetUserIDToContext(context.Background(), userID),
+			ctx:             createContextWithUserID(userID),
 			body:            fmt.Sprintf(`{"url": "%s"}`, url),
 			serviceResponse: responseURL,
 			wantStatusCode:  http.StatusCreated,
@@ -318,19 +324,19 @@ func TestHandler_CreateShortURLBatch(t *testing.T) {
 			wantStatusCode: http.StatusInternalServerError,
 		},
 		"failed to decode body": {
-			ctx:            auth.SetUserIDToContext(context.Background(), userID),
+			ctx:            createContextWithUserID(userID),
 			body:           "wrong body",
 			wantError:      true,
 			wantStatusCode: http.StatusBadRequest,
 		},
 		"empty batch": {
-			ctx:            auth.SetUserIDToContext(context.Background(), userID),
+			ctx:            createContextWithUserID(userID),
 			body:           "[]",
 			wantError:      true,
 			wantStatusCode: http.StatusBadRequest,
 		},
 		"service error": {
-			ctx:  auth.SetUserIDToContext(context.Background(), userID),
+			ctx:  createContextWithUserID(userID),
 			body: `[{"correlation_id": "1", "original_url": "http://yandex.ru/"}, {"correlation_id": "2", "original_url": "http://google.com"}]`,
 			serviceRequest: []*request.CreateShortURLBatch{
 				{
@@ -347,7 +353,7 @@ func TestHandler_CreateShortURLBatch(t *testing.T) {
 			wantStatusCode: http.StatusInternalServerError,
 		},
 		"success": {
-			ctx:  auth.SetUserIDToContext(context.Background(), userID),
+			ctx:  createContextWithUserID(userID),
 			body: `[{"correlation_id": "1", "original_url": "http://yandex.ru/"}, {"correlation_id": "2", "original_url": "http://google.com"}]`,
 			serviceRequest: []*request.CreateShortURLBatch{
 				{
@@ -427,19 +433,19 @@ func TestHandler_GetUserURLs(t *testing.T) {
 			wantStatusCode: http.StatusInternalServerError,
 		},
 		"service error": {
-			ctx:            auth.SetUserIDToContext(context.Background(), userID),
+			ctx:            createContextWithUserID(userID),
 			serviceError:   errors.New("service error"),
 			wantError:      true,
 			wantStatusCode: http.StatusInternalServerError,
 		},
 		"service error no content": {
-			ctx:            auth.SetUserIDToContext(context.Background(), userID),
+			ctx:            createContextWithUserID(userID),
 			serviceError:   model.ErrNoContent,
 			wantError:      true,
 			wantStatusCode: http.StatusNoContent,
 		},
 		"success": {
-			ctx: auth.SetUserIDToContext(context.Background(), userID),
+			ctx: createContextWithUserID(userID),
 			serviceResponse: []model.GetUserURL{
 				{
 					ShortURL:    "http://localhost/ABOBA",
@@ -504,18 +510,18 @@ func TestHandler_DeleteURLs(t *testing.T) {
 			wantStatusCode: http.StatusInternalServerError,
 		},
 		"failed to decode body": {
-			ctx:            auth.SetUserIDToContext(context.Background(), userID),
+			ctx:            createContextWithUserID(userID),
 			body:           "fail",
 			wantStatusCode: http.StatusBadRequest,
 		},
 		"service error": {
-			ctx:            auth.SetUserIDToContext(context.Background(), userID),
+			ctx:            createContextWithUserID(userID),
 			body:           string(shortKeysBytes),
 			serviceError:   errors.New("service error"),
 			wantStatusCode: http.StatusInternalServerError,
 		},
 		"success": {
-			ctx:            auth.SetUserIDToContext(context.Background(), userID),
+			ctx:            createContextWithUserID(userID),
 			body:           string(shortKeysBytes),
 			wantStatusCode: http.StatusAccepted,
 		},

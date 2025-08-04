@@ -5,11 +5,13 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
+      - "8081:8081"
     environment:
       - SERVER_ADDRESS=:8080
+      - GRPC_ADDRESS=:8081
       - BASE_URL=http://localhost:8080
       - SHORT_URL_LENGTH=8
-      - LOG_LEVEL=INFO
+      - LOG_LEVEL=DEBUG
       - FILE_STORAGE_PATH=/tmp/urls
       - DATABASE_DSN=postgres://postgres:postgres@db:5432/urlshorter?sslmode=disable
       - JWT_SECRET_KEY=a-string-secret-at-least-256-bits-long

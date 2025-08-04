@@ -42,7 +42,7 @@ func TestRequestLog_Handle(t *testing.T) {
 	r := httptest.NewRequest(http.MethodPatch, "/test-uri-patch", bytes.NewReader([]byte("test body")))
 	w := httptest.NewRecorder()
 
-	middleware.Handle(h).ServeHTTP(w, r)
+	middleware.HandleHTTP(h).ServeHTTP(w, r)
 
 	var logEntry = &logStruct{}
 	err := json.NewDecoder(buf).Decode(logEntry)

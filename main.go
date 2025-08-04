@@ -21,3 +21,10 @@ package main
 // @in header
 // @name Authorization
 // @description Type "Bearer" followed by a space and JWT token.
+
+// main is a placeholder function for swagger documentation generation.
+// The actual main function is located in cmd/shortener/main.go
+func main() {
+	// This file is used only for swagger documentation generation
+	// The actual application entry point is in cmd/shortener/main.go
+}

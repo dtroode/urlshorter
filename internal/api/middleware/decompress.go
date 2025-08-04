@@ -33,6 +33,13 @@ var readerPool = &sync.Pool{
 }
 
 // Decompress middleware decompresses gzipped HTTP requests.
+// It automatically detects gzip-encoded requests and decompresses them before passing to handlers.
+// Uses a pool of gzip readers for efficient memory usage.
+//
+// Parameters:
+//   - h: The next HTTP handler in the middleware chain
+//
+// Returns an HTTP handler that decompresses gzipped requests before processing.
 func Decompress(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ce := r.Header.Get("Content-Encoding")

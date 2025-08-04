@@ -10,9 +10,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
+	c "github.com/dtroode/urlshorter/internal/api/http/context"
 	"github.com/dtroode/urlshorter/internal/api/http/request"
 	"github.com/dtroode/urlshorter/internal/api/http/response"
-	"github.com/dtroode/urlshorter/internal/auth"
 	"github.com/dtroode/urlshorter/internal/logger"
 	"github.com/dtroode/urlshorter/internal/model"
 )
@@ -44,15 +44,17 @@ type URLService interface {
 // URL represents the URL shortening HTTP handler.
 // It provides HTTP endpoints for URL shortening operations.
 type URL struct {
-	service URLService
-	logger  *logger.Logger
+	service        URLService
+	logger         *logger.Logger
+	contextManager *c.Manager
 }
 
 // NewURL creates a new URL handler instance with the provided service and logger.
 func NewURL(s URLService, l *logger.Logger) *URL {
 	return &URL{
-		service: s,
-		logger:  l,
+		service:        s,
+		logger:         l,
+		contextManager: c.NewManager(),
 	}
 }
 
@@ -116,7 +118,7 @@ func (h *URL) GetOriginalURL(w http.ResponseWriter, r *http.Request) {
 // @Router / [post]
 func (h *URL) CreateShortURL(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userID, ok := auth.GetUserIDFromContext(ctx)
+	userID, ok := h.contextManager.GetUserIDFromContext(ctx)
 	if !ok {
 		h.logger.Error("failed to get user id from context")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -172,7 +174,7 @@ func (h *URL) CreateShortURL(w http.ResponseWriter, r *http.Request) {
 // @Router /api/shorten [post]
 func (h *URL) CreateShortURLJSON(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userID, ok := auth.GetUserIDFromContext(ctx)
+	userID, ok := h.contextManager.GetUserIDFromContext(ctx)
 	if !ok {
 		h.logger.Error("failed to get user id from context")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -231,7 +233,7 @@ func (h *URL) CreateShortURLJSON(w http.ResponseWriter, r *http.Request) {
 // @Router /api/shorten/batch [post]
 func (h *URL) CreateShortURLBatch(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userID, ok := auth.GetUserIDFromContext(ctx)
+	userID, ok := h.contextManager.GetUserIDFromContext(ctx)
 	if !ok {
 		h.logger.Error("failed to get user id from context")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -304,7 +306,7 @@ func (h *URL) CreateShortURLBatch(w http.ResponseWriter, r *http.Request) {
 // @Router /api/user/urls [get]
 func (h *URL) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userID, ok := auth.GetUserIDFromContext(ctx)
+	userID, ok := h.contextManager.GetUserIDFromContext(ctx)
 	if !ok {
 		h.logger.Error("failed to get user id from context")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -359,7 +361,7 @@ func (h *URL) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 // @Router /api/user/urls [delete]
 func (h *URL) DeleteURLs(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userID, ok := auth.GetUserIDFromContext(ctx)
+	userID, ok := h.contextManager.GetUserIDFromContext(ctx)
 	if !ok {
 		h.logger.Error("failed to get user id from context")
 		w.WriteHeader(http.StatusInternalServerError)

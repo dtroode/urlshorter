@@ -15,12 +15,18 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
 
+	httpContext "github.com/dtroode/urlshorter/internal/api/http/context"
 	"github.com/dtroode/urlshorter/internal/api/http/handler/mocks"
 	"github.com/dtroode/urlshorter/internal/api/http/request"
-	"github.com/dtroode/urlshorter/internal/auth"
 	"github.com/dtroode/urlshorter/internal/logger"
 	"github.com/dtroode/urlshorter/internal/model"
 )
+
+// helper function to create context with userID for tests
+func createContextWithUserIDForExamples(userID uuid.UUID) context.Context {
+	contextManager := httpContext.NewManager()
+	return contextManager.SetUserIDToContext(context.Background(), userID)
+}
 
 // ExampleURL_GetOriginalURL demonstrates how to handle a GET request to retrieve the original URL.
 func ExampleURL_GetOriginalURL() {
@@ -67,7 +73,7 @@ func ExampleURL_CreateShortURL() {
 	body := strings.NewReader("https://example.com/very-long-url-path")
 	req := httptest.NewRequest(http.MethodPost, "/", body)
 
-	ctx := auth.SetUserIDToContext(req.Context(), userID)
+	ctx := createContextWithUserIDForExamples(userID)
 	req = req.WithContext(ctx)
 
 	w := httptest.NewRecorder()
@@ -109,7 +115,7 @@ func ExampleURL_CreateShortURLJSON() {
 	req := httptest.NewRequest(http.MethodPost, "/api/shorten", body)
 	req.Header.Set("Content-Type", "application/json")
 
-	ctx := auth.SetUserIDToContext(req.Context(), userID)
+	ctx := createContextWithUserIDForExamples(userID)
 	req = req.WithContext(ctx)
 
 	w := httptest.NewRecorder()
@@ -168,7 +174,7 @@ func ExampleURL_CreateShortURLBatch() {
 	req := httptest.NewRequest(http.MethodPost, "/api/shorten/batch", body)
 	req.Header.Set("Content-Type", "application/json")
 
-	ctx := auth.SetUserIDToContext(req.Context(), userID)
+	ctx := createContextWithUserIDForExamples(userID)
 	req = req.WithContext(ctx)
 
 	w := httptest.NewRecorder()
@@ -212,7 +218,7 @@ func ExampleURL_GetUserURLs() {
 
 	req := httptest.NewRequest(http.MethodGet, "/api/user/urls", nil)
 
-	ctx := auth.SetUserIDToContext(req.Context(), userID)
+	ctx := createContextWithUserIDForExamples(userID)
 	req = req.WithContext(ctx)
 
 	w := httptest.NewRecorder()
@@ -251,7 +257,7 @@ func ExampleURL_DeleteURLs() {
 	req := httptest.NewRequest(http.MethodDelete, "/api/user/urls", body)
 	req.Header.Set("Content-Type", "application/json")
 
-	ctx := auth.SetUserIDToContext(req.Context(), userID)
+	ctx := createContextWithUserIDForExamples(userID)
 	req = req.WithContext(ctx)
 
 	w := httptest.NewRecorder()
